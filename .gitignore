@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+virtual_env/
+.venv/
+
+# Environment variables
+.env
+
+# uv
+uv.lock
+
+# OS
+.DS_Store
+Thumbs.db
+blogs/
+generated_podcasts/
+generated_videos/
+.agent/
+.qoder/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+data/
+Agents_backend/data/
+*qoder
+
+# Golden test artifacts
+Agents_backend/tests/golden/_runs/
+
+# Caches & Test Results
+.deepeval/
+.pytest_cache/
+Agents_backend/.deepeval/
+Agents_backend/.pytest_cache/
+**/__pycache__/
+
+# User Uploads
+Agents_backend/uploads/
+
+# Node.js
+node_modules/
+
+# FYP Development & Thesis Files
+# The LaTeX SOURCES are tracked — they are small, they are the writing, and
+# they benefit from history. Everything else in the folder is ignored: the
+# diagram exports run to several megabytes and change on every re-export, and
+# main.pdf is a build artefact.
+#
+# Note the syntax: the directory itself must NOT be excluded, only its
+# contents. Git cannot re-include a file whose parent directory is excluded,
+# so `BS_FYP_development/` followed by a negation would silently not work.
+BS_FYP_development/*
+!BS_FYP_development/*.tex
+!BS_FYP_development/*.bib
