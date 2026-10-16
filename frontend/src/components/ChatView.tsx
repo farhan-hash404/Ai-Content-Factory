@@ -153,6 +153,7 @@ export function ChatView({
   const [uploadError, setUploadError] = useState<string>('');
   const [sourceMode, setSourceMode] = useState<SourceMode>('hybrid');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const topicInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const clearUpload = () => {
     setUploadStatus('idle');
@@ -207,6 +208,22 @@ export function ChatView({
 
   const isAwaitingApproval = currentJob?.status === 'awaiting_approval';
   const showHero = !currentJob && events.length === 0;
+  // The composer is offered on a fresh home screen and on a finished/failed job
+  // (to run another topic). It is hidden while a job is running or awaiting
+  // approval, where the primary action lives elsewhere.
+  const composerVisible = !currentJob || currentJob.status === 'completed' || currentJob.status === 'failed';
+
+  // When the home screen appears — on first load, and every time the user hits
+  // "New Generation" — bring the composer into view and focus it, so a new user
+  // never has to hunt or scroll for the search box.
+  useEffect(() => {
+    if (!showHero) return;
+    const t = setTimeout(() => {
+      topicInputRef.current?.focus();
+      topicInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [showHero]);
 
   return (
     <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 relative overflow-y-auto">
@@ -270,7 +287,7 @@ export function ChatView({
 
         {/* -------- Welcome Hero & Quick Templates -------- */}
         {showHero && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn order-2">
             
             {/* Mission banner */}
             <div className="card-bento p-6 md:p-8 relative overflow-hidden">
@@ -532,11 +549,11 @@ export function ChatView({
           </div>
         )}
 
-      </div>
-
       {/* -------- Generation Input Composer Deck -------- */}
-      {(!currentJob || currentJob.status === 'completed' || currentJob.status === 'failed') && (
-        <div className="w-full max-w-4xl mx-auto mt-4 shrink-0 z-30">
+      {/* Lives inside the content column so flex `order` can place it: directly
+          under the header on the home screen, or at the bottom on a finished job. */}
+      {composerVisible && (
+        <div className={`w-full max-w-4xl mx-auto shrink-0 z-30 ${showHero ? 'order-1 mt-0' : 'order-last mt-4'}`}>
           
           {/* Topic validation error */}
           {topicError && (
@@ -589,6 +606,7 @@ export function ChatView({
             {/* Prompt input field */}
             <div className="w-full">
               <textarea
+                ref={topicInputRef}
                 className="w-full bg-transparent border-none text-base-100 placeholder:text-base-500 text-sm md:text-base font-medium min-h-[58px] max-h-[180px] resize-none focus:outline-none focus:ring-0 leading-relaxed font-sans"
                 placeholder={
                   uploadStatus === 'ready' && sourceMode === 'auto_topic'
@@ -738,6 +756,8 @@ export function ChatView({
           </div>
         </div>
       )}
+
+      </div>
     </main>
   );
 }

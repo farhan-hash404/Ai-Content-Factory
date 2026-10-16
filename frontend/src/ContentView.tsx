@@ -15,7 +15,7 @@ import { LoadingState } from './components/LoadingState';
 import { DeepEvalSection } from './components/DeepEvalSection';
 import { RubricDetailCard } from './components/RubricDetailCard';
 import { PodcastPlayer } from './components/PodcastPlayer';
-import { useJobActions } from './hooks/useJobActions';
+import { useJobActions, JobAction } from './hooks/useJobActions';
 import { useJobAnalytics } from './hooks/useJobAnalytics';
 
 type ViewState = 'chat' | 'content';
@@ -156,6 +156,57 @@ export function ContentView({ navTo, currentJob, refreshJob, events = [], reconn
             {/* BLOG TAB */}
             {activeTab === 'blog' && (
               <div className="flex flex-col gap-4">
+                {/* Multimodal CTA — surfaces the podcast/video/images/social
+                    generators right on the page everyone lands on, instead of
+                    hiding them behind small tabs. Each tile shows its state and
+                    either starts generation or jumps to the finished asset. */}
+                {currentJob.final_content && (
+                  <div className="rounded-2xl border border-accent-500/20 bg-gradient-to-br from-accent-500/8 to-transparent p-4 md:p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-accent-400" />
+                      <h3 className="text-sm font-bold text-base-100">Turn this blog into more</h3>
+                      <span className="text-[11px] text-base-400">— one click each</span>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                      {([
+                        { tab: 'podcast' as TabState, task: 'podcast' as JobAction, runKey: 'podcast', icon: Podcast, label: 'Podcast', ready: !!currentJob.podcast_file },
+                        { tab: 'video' as TabState,   task: 'video' as JobAction,   runKey: 'video',   icon: Film,    label: 'Video',   ready: !!currentJob.video_file },
+                        { tab: 'images' as TabState,  task: 'images' as JobAction,  runKey: 'images',  icon: ImageIcon, label: 'Images', ready: !!(currentJob.image_files && currentJob.image_files.length) },
+                        { tab: 'social' as TabState,  task: 'social' as JobAction,  runKey: 'campaign', icon: Share2,  label: 'Social', ready: !!currentJob.social_linkedin },
+                      ]).map(({ tab, task, runKey, icon: Icon, label, ready }) => {
+                        const running = isTaskRunning(runKey);
+                        return (
+                          <button
+                            key={tab}
+                            onClick={() => {
+                              setActiveTab(tab);
+                              if (!ready && !running) handleTrigger(task);
+                            }}
+                            className={`group relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 ${
+                              ready
+                                ? 'border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15'
+                                : 'border-white/10 bg-white/4 hover:border-accent-500/40 hover:bg-accent-500/10'
+                            }`}
+                          >
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                              ready ? 'bg-emerald-500/15 text-emerald-400' : 'bg-accent-500/15 text-accent-400'
+                            }`}>
+                              {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-sm font-bold text-base-100">{label}</span>
+                              <span className={`block text-[11px] font-medium ${ready ? 'text-emerald-400' : 'text-base-400 group-hover:text-accent-300'}`}>
+                                {running ? 'Generating…' : ready ? 'Ready — view' : 'Generate'}
+                              </span>
+                            </span>
+                            {ready && <Check className="w-4 h-4 text-emerald-400 absolute top-2 right-2" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Bar & Token Badge */}
                 {currentJob.final_content && (
                   <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-base-900/80 dark:bg-base-900/90 border border-base-750/80 backdrop-blur-xl shadow-lg">

@@ -32,9 +32,9 @@ export function EmptyState({
 
       <button
         onClick={onGenerate}
-        className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-md"
+        className="btn-primary px-8 py-3.5 rounded-xl text-sm font-bold flex items-center gap-2.5 cursor-pointer shadow-lg hover:scale-[1.02] transition-transform"
       >
-        <LayoutTemplate className="w-4 h-4" />
+        <LayoutTemplate className="w-5 h-5" />
         <span>Generate Now</span>
       </button>
     </div>
