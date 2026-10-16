@@ -16,8 +16,12 @@ from Graph.agents.utils import logger, _job, _emit, llm_quality
 _TTS_MAX_ATTEMPTS = 3
 _TTS_BACKOFF_BASE = 2
 
-# Voice assignments: distinct OpenAI voices for each host
+# Voice assignments: one distinct voice per host.
 # nova = bright/energetic (Host A),  onyx = deep/warm (Host B)
+#
+# These are OpenAI voice names, and Graph/tts.py maps each to an Edge voice with
+# the same character. Keeping the OpenAI vocabulary here means the two
+# synthesisers are interchangeable without a second voice table.
 _VOICE_MAP = {
     "Host A": "nova",
     "Host B": "onyx",
@@ -58,7 +62,7 @@ def _get_openai_client():
     from openai import OpenAI
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        logger.warning("OPENAI_API_KEY not set — cannot generate podcast audio.")
+        logger.info("OPENAI_API_KEY not set — skipping the paid OpenAI TTS fallback.")
         return None
     return OpenAI(api_key=api_key)
 
@@ -77,28 +81,132 @@ def _get_audio_file_clip():
             return None
 
 
-def _generate_podcast_audio_gemini(script_prompt_or_text: str, output_path: str) -> bool:
-    """Generate audio using Gemini 2.5 Flash native audio modality."""
+def _synthesize_turns_edge(turns) -> list[bytes] | None:
+    """Synthesise every dialogue turn with keyless Edge TTS.
+
+    Returns one raw-PCM buffer per non-empty turn, or None if any turn failed —
+    a podcast missing its middle third is worse than no podcast, because the
+    gap is not visible in the player.
+
+    This is the primary synthesiser: it costs nothing, needs no credential, and
+    gives each host a distinct voice, which the single-voice Gemini fallback
+    below cannot.
+    """
+    from Graph import tts
+
+    if not tts.is_available():
+        logger.info("   Keyless Edge TTS unavailable (edge-tts or ffmpeg missing).")
+        return None
+
+    segments: list[bytes] = []
+    for idx, turn in enumerate(turns):
+        text = turn.text.strip()
+        if not text:
+            continue
+        voice = _VOICE_MAP.get(turn.speaker, "nova")
+        logger.info(
+            f"🎙️ Edge TTS turn {idx + 1}/{len(turns)} "
+            f"({turn.speaker} → {tts.resolve_voice(voice)})..."
+        )
+        pcm = None
+        for attempt in range(1, _TTS_MAX_ATTEMPTS + 1):
+            pcm = tts.synthesize_pcm(text, voice)
+            if pcm:
+                break
+            if attempt < _TTS_MAX_ATTEMPTS:
+                wait = (_TTS_BACKOFF_BASE ** attempt) + random.random()
+                logger.warning(f"   ⚠️ Turn {idx + 1} attempt {attempt} produced no audio. "
+                               f"Retrying in {wait:.1f}s...")
+                time.sleep(wait)
+        if not pcm:
+            logger.error(f"   ❌ Edge TTS failed on turn {idx + 1} after "
+                         f"{_TTS_MAX_ATTEMPTS} attempts.")
+            return None
+        segments.append(pcm)
+        logger.info(f"   ✅ Turn {idx + 1} synthesised ({len(pcm):,} bytes PCM).")
+
+    return segments or None
+
+
+def _synthesize_turns_openai(client, turns) -> list[bytes] | None:
+    """Synthesise every turn with OpenAI `tts-1-hd`. Paid; used only as a fallback."""
+    segments: list[bytes] = []
+    for idx, turn in enumerate(turns):
+        text = turn.text.strip()
+        if not text:
+            continue
+        voice = _VOICE_MAP.get(turn.speaker, "nova")
+        logger.info(f"🎙️ OpenAI TTS turn {idx + 1}/{len(turns)} "
+                    f"({turn.speaker} → voice: {voice})...")
+
+        success = False
+        for attempt in range(1, _TTS_MAX_ATTEMPTS + 1):
+            try:
+                response = client.audio.speech.create(
+                    model="tts-1-hd",       # high-quality model
+                    voice=voice,
+                    input=text,
+                    response_format="pcm",  # 24 kHz, 16-bit, mono — matches WAV params
+                )
+                segments.append(response.content)
+                logger.info(f"   ✅ Turn {idx + 1} synthesised ({len(response.content):,} bytes).")
+                success = True
+                break
+            except Exception as e:
+                logger.warning(f"   ⚠️ Turn {idx + 1} attempt {attempt} failed: {e}")
+                if attempt < _TTS_MAX_ATTEMPTS:
+                    wait = (_TTS_BACKOFF_BASE ** attempt) + random.random()
+                    logger.info(f"   ⏳ Retrying in {wait:.1f}s...")
+                    time.sleep(wait)
+
+        if not success:
+            logger.error(f"   ❌ Turn {idx + 1} failed after {_TTS_MAX_ATTEMPTS} attempts.")
+            return None
+
+    return segments or None
+
+
+def _synthesize_script_gemini(script_text: str) -> list[bytes] | None:
+    """Read the whole script aloud with one Gemini voice. Last-resort fallback.
+
+    THREE THINGS TO KNOW about this path, all of them reasons it is last:
+
+    1. It is SINGLE-VOICE. Both hosts are read by the same narrator, so the
+       conversation stops sounding like a conversation.
+    2. The model is `gemini-2.5-flash-preview-tts`, not `gemini-2.5-flash`.
+       Asking the plain chat model for `response_modalities=["AUDIO"]` is
+       rejected — the previous version of this function did exactly that, so
+       the "primary" Gemini path had never once produced audio.
+    3. The response is RAW PCM, not a WAV file. The previous version wrote
+       those bytes straight to `podcast.mp3`, producing a file no player could
+       open. Returning PCM here routes it through the same merge-and-encode
+       step as every other provider.
+
+    The free tier also allows only a few requests per minute, which is why the
+    entire script goes in one request rather than one request per turn.
+    """
     try:
         from google import genai
         from google.genai import types
     except ImportError:
         logger.warning("google-genai not installed. Skipping Gemini audio synthesis.")
-        return False
+        return None
 
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         logger.warning("GOOGLE_API_KEY not set for Gemini audio generation.")
-        return False
+        return None
 
+    model = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
     try:
-        logger.info("🎙️ Attempting Gemini 2.5 Flash native audio synthesis...")
+        logger.info(f"🎙️ Attempting Gemini native audio synthesis ({model})...")
         client = genai.Client(api_key=api_key)
         resp = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model,
             contents=(
-                "You are a professional podcast host. Read the following script naturally "
-                f"with clear tone and conversational pacing:\n\n{script_prompt_or_text}"
+                "Read the following two-host podcast script aloud naturally, with "
+                "clear tone and conversational pacing. Do not announce the speaker "
+                f"labels.\n\n{script_text}"
             ),
             config=types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
@@ -112,15 +220,14 @@ def _generate_podcast_audio_gemini(script_prompt_or_text: str, output_path: str)
         if resp.candidates and resp.candidates[0].content.parts:
             for part in resp.candidates[0].content.parts:
                 if part.inline_data and part.inline_data.data:
-                    output_p = Path(output_path)
-                    output_p.parent.mkdir(parents=True, exist_ok=True)
-                    output_p.write_bytes(part.inline_data.data)
-                    logger.info(f"   ✅ Gemini 2.5 Flash native audio podcast saved → {output_path}")
-                    return True
-        return False
+                    logger.info("   ✅ Gemini native audio received "
+                                f"({len(part.inline_data.data):,} bytes PCM).")
+                    return [part.inline_data.data]
+        logger.warning("   ⚠️ Gemini response contained no audio data.")
+        return None
     except Exception as e:
-        logger.warning(f"   ⚠️ Gemini native audio generation failed ({e}). Retrying / falling back...")
-        return False
+        logger.warning(f"   ⚠️ Gemini native audio generation failed ({e}).")
+        return None
 
 
 # ============================================================================
@@ -129,18 +236,12 @@ def _generate_podcast_audio_gemini(script_prompt_or_text: str, output_path: str)
 
 def generate_podcast_audio(state: dict, output_path: str) -> bool:
     """
-    Generate a podcast audio episode using:
-      1. Gemini 2.5 Flash Native Audio (if GOOGLE_API_KEY is present)
-      2. OpenAI TTS (tts-1-hd) 2-speaker dialogue synthesis (if OPENAI_API_KEY is present)
+    Generate a podcast audio episode. Synthesiser preference, best first:
+      1. Edge TTS      — keyless, free, one distinct voice per host
+      2. OpenAI TTS    — `tts-1-hd`, paid, also two voices (needs OPENAI_API_KEY)
+      3. Gemini TTS    — free tier, but single-voice and tightly rate-limited
     Outputs a single audio file at `output_path`.
     """
-    client = _get_openai_client()
-    google_key = os.getenv("GOOGLE_API_KEY")
-
-    if not client and not google_key:
-        logger.error("Neither OPENAI_API_KEY nor GOOGLE_API_KEY is available for podcast synthesis.")
-        return False
-
     plan  = state.get("plan")
     topic = state.get("topic", "the topic")
 
@@ -205,65 +306,27 @@ Guidelines:
         logger.error(f"   ❌ Script generation failed: {e}")
         return False
 
-    # ── Primary: Attempt Gemini 2.5 Flash Native Audio Synthesis ─────────
-    if google_key:
-        script_full_text = f"Title: {script.title}\n\n" + "\n\n".join(f"{t.speaker}: {t.text}" for t in script.turns)
-        gemini_success = _generate_podcast_audio_gemini(script_full_text, output_path)
-        if gemini_success:
-            return True
-        logger.info("   ⚠️ Gemini native audio generation unavailable/failed. Falling back to OpenAI HD dual-speaker TTS...")
-
-    if not client:
-        logger.error("OpenAI API key missing and Gemini audio synthesis failed. Aborting podcast generation.")
-        return False
-
-    # ── Secondary: Synthesise each turn with OpenAI HD TTS ─────────────
-    import io
+    # ── Synthesise: keyless first, paid second, rate-limited third ────────
     import wave as wave_lib
 
-    audio_segments: list[bytes] = []   # raw PCM frames for each turn
+    audio_segments: list[bytes] | None = _synthesize_turns_edge(script.turns)
 
-    for idx, turn in enumerate(script.turns):
-        voice    = _VOICE_MAP.get(turn.speaker, "nova")
-        turn_txt = turn.text.strip()
-        if not turn_txt:
-            continue
+    if not audio_segments:
+        client = _get_openai_client()
+        if client:
+            logger.info("   ⚠️ Edge TTS unavailable. Falling back to OpenAI HD dual-speaker TTS...")
+            audio_segments = _synthesize_turns_openai(client, script.turns)
 
-        logger.info(
-            f"🎙️ Synthesising turn {idx + 1}/{len(script.turns)} "
-            f"({turn.speaker} → voice: {voice})..."
+    if not audio_segments:
+        logger.info("   ⚠️ Falling back to single-voice Gemini narration...")
+        script_full_text = f"Title: {script.title}\n\n" + "\n\n".join(
+            f"{t.speaker}: {t.text}" for t in script.turns
         )
-
-        success = False
-        for attempt in range(1, _TTS_MAX_ATTEMPTS + 1):
-            try:
-                # OpenAI TTS — returns raw MP3/PCM bytes directly
-                response = client.audio.speech.create(
-                    model="tts-1-hd",       # high-quality model
-                    voice=voice,
-                    input=turn_txt,
-                    response_format="pcm",  # 24 kHz, 16-bit, mono — matches WAV params
-                )
-                audio_segments.append(response.content)
-                logger.info(f"   ✅ Turn {idx + 1} synthesised ({len(response.content):,} bytes).")
-                success = True
-                break
-
-            except Exception as e:
-                err = str(e)
-                logger.warning(f"   ⚠️ Turn {idx + 1} attempt {attempt} failed: {e}")
-                if attempt < _TTS_MAX_ATTEMPTS:
-                    wait = (_TTS_BACKOFF_BASE ** attempt) + random.random()
-                    logger.info(f"   ⏳ Retrying in {wait:.1f}s...")
-                    time.sleep(wait)
-
-        if not success:
-            logger.error(f"   ❌ Turn {idx + 1} failed after {_TTS_MAX_ATTEMPTS} attempts.")
-            return False
+        audio_segments = _synthesize_script_gemini(script_full_text)
 
     # ── Merge all PCM segments into a single WAV ──────────────────────────
     if not audio_segments:
-        logger.error("   ❌ No audio segments produced.")
+        logger.error("   ❌ No audio segments produced by any synthesiser.")
         return False
 
     # If output_path is .mp3, we write to a temporary WAV file first and then convert it.
@@ -276,7 +339,7 @@ Guidelines:
         silence_bytes = b"\x00" * 14400
 
         with wave_lib.open(wav_path, "wb") as wf:
-            # OpenAI PCM: 24 000 Hz, 16-bit (2 bytes), mono
+            # All synthesisers here return 24 000 Hz, 16-bit (2 bytes), mono
             wf.setnchannels(1)
             wf.setsampwidth(2)
             wf.setframerate(24000)
@@ -331,11 +394,11 @@ Guidelines:
 
 def podcast_node(state: dict) -> dict:
     """
-    LangGraph node: generate podcast audio from blog content using OpenAI TTS.
+    LangGraph node: generate podcast audio from blog content.
     Returns: {"podcast_audio_path": str | None}
     """
-    _emit(_job(state), "podcast_generator", "started", "Generating AI Podcast Audio via OpenAI TTS...")
-    logger.info("--- 🎙️ PODCAST STATION (OpenAI TTS) ---")
+    _emit(_job(state), "podcast_generator", "started", "Generating AI Podcast Audio...")
+    logger.info("--- 🎙️ PODCAST STATION ---")
 
     # Setup output directory
     blog_folder = state.get("blog_folder")
@@ -345,7 +408,7 @@ def podcast_node(state: dict) -> dict:
     timestamp  = datetime.now().strftime("%Y%m%d_%H%M%S")
     final_path = podcast_dir / f"podcast_{timestamp}.mp3"
 
-    logger.info("   ✍️  Synthesising Podcast Audio via OpenAI TTS...")
+    logger.info("   ✍️  Synthesising Podcast Audio...")
     success = generate_podcast_audio(state, str(final_path))
 
     if success:

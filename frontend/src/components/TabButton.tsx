@@ -18,14 +18,14 @@ export function TabButton<T extends string>({
   return (
     <button
       onClick={() => setActiveTab(id)}
-      className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap relative
+      className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap relative cursor-pointer
       ${
         active
-          ? 'bg-accent-500/10 text-accent-400 border border-accent-500/20 shadow-sm'
-          : 'text-base-400 hover:text-base-200 hover:bg-white/3 border border-transparent'
+          ? 'bg-accent-500/12 text-accent-300 border border-accent-500/25 shadow-xs'
+          : 'text-base-400 hover:text-base-100 hover:bg-white/4 border border-transparent'
       }`}
     >
-      {icon} {label}
+      {icon} <span>{label}</span>
       {active && (
         <motion.div
           layoutId="tab-active-underline"

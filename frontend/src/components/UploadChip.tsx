@@ -70,7 +70,7 @@ export function UploadChip({
         <button
           type="button"
           onClick={onClear}
-          className="p-1 rounded hover:bg-white/10 text-base-400 hover:text-base-100 shrink-0"
+          className="p-1 rounded hover:bg-white/10 text-base-400 hover:text-base-100 shrink-0 cursor-pointer transition-colors"
           aria-label="Remove file"
         >
           <X className="w-3.5 h-3.5" />
@@ -89,10 +89,10 @@ export function UploadChip({
                 type="button"
                 onClick={() => onSourceModeChange(opt.id)}
                 title={opt.desc}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
                   active
-                    ? 'text-accent-400 bg-accent-500/10 border-accent-500/30'
-                    : 'text-base-400 hover:text-base-200 border-white/6 hover:bg-white/3'
+                    ? 'text-accent-400 bg-accent-500/10 border-accent-500/30 font-semibold shadow-xs'
+                    : 'text-base-400 hover:text-base-200 border-white/6 hover:bg-white/4'
                 }`}
               >
                 <Icon className="w-3 h-3" />

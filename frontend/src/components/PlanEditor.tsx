@@ -97,58 +97,81 @@ export function PlanEditor({ plan, onApprove, onRevise, onUpdatePlan }: PlanEdit
   };
 
   return (
-    <div className="self-start max-w-3xl flex gap-3.5 w-full mt-2">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-signal-warning-dim border border-signal-warning/15">
-        <Bot className="w-4 h-4 text-signal-warning animate-bounce" />
-      </div>
-      <div className="glass-panel p-6 rounded-2xl rounded-tl-sm flex-1 border border-signal-warning/15">
-        <h3 className="text-lg font-bold text-signal-warning mb-1">Plan Ready for Approval</h3>
-        <p className="text-sm text-base-300 mb-4.5">Edit the outline below, add or remove sections, then approve.</p>
+    <div className="w-full mt-2">
+      <div className="card-bento p-5 md:p-6 border-amber-500/30 bg-base-900/90 shadow-xl">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
+              <Bot className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-sm md:text-base font-bold text-base-100">Plan Ready for Human Approval</h3>
+              <p className="text-xs text-base-400">Review or customize the outline below before parallel writers execute.</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+            {tasks.length} Sections
+          </span>
+        </div>
 
         {/* Blog Title */}
-        <div className="bg-base-950/40 p-4.5 rounded-2xl border border-white/5 mb-4.5 focus-within:border-accent-500/25 transition-all duration-300">
-          <label className="text-[10px] font-bold text-base-400 uppercase tracking-widest mb-1.5 block">Blog Title</label>
+        <div className="p-3.5 rounded-xl bg-base-950/60 border border-white/8 mb-4 focus-within:border-accent-500/35 transition-colors">
+          <label className="text-[10px] font-bold text-base-400 uppercase tracking-wider mb-1.5 block">
+            Blog Post Title
+          </label>
           <input
             type="text"
-            className="w-full bg-base-900/60 border border-white/6 rounded-xl px-3.5 py-2.5 text-sm text-base-100 font-medium focus:outline-none focus:border-accent-500/40 transition-all focus:shadow-[0_0_10px_var(--color-accent-glow)]"
+            className="w-full bg-base-900 border border-white/8 rounded-lg px-3 py-2 text-sm text-base-100 font-semibold focus:outline-none focus:border-accent-500/40"
             value={editedTitle}
             onChange={e => { setEditedTitle(e.target.value); markEdited(); }}
           />
         </div>
 
         {/* Sections */}
-        <div className="space-y-3.5 mb-5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold text-base-400 uppercase tracking-widest">Sections ({tasks.length})</span>
+        <div className="space-y-2.5 mb-5">
+          <div className="flex items-center justify-between mb-1 px-1">
+            <span className="text-[10px] font-bold text-base-400 uppercase tracking-wider">
+              Outline Sections
+            </span>
+            <span className="text-[10px] text-base-500">
+              Total Target: ~{tasks.reduce((sum, t) => sum + (t.target_words || 350), 0)} words
+            </span>
           </div>
 
           {tasks.map((task, idx) => (
-            <div key={idx} className="bg-base-950/30 rounded-xl border border-white/6 overflow-hidden group transition-all duration-200 hover:border-white/12 hover:bg-base-950/40">
-              {/* Section Header — always visible */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <GripVertical className="w-3.5 h-3.5 text-base-500 shrink-0" />
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-500/10 text-accent-400 text-[10px] font-bold shrink-0">
+            <div
+              key={idx}
+              className="bg-base-950/40 rounded-xl border border-white/6 overflow-hidden transition-all hover:border-white/12 hover:bg-base-950/60"
+            >
+              {/* Section Header */}
+              <div className="flex items-center gap-3 px-3.5 py-2.5">
+                <GripVertical className="w-3.5 h-3.5 text-base-600 shrink-0" />
+                <span className="flex items-center justify-center w-5 h-5 rounded-md bg-accent-500/10 text-accent-400 text-[11px] font-bold shrink-0">
                   {idx + 1}
                 </span>
                 <input
                   ref={el => { titleRefs.current[idx] = el; }}
                   type="text"
-                  className="flex-1 bg-transparent border-none text-sm text-base-100 font-bold focus:ring-0 focus:outline-none placeholder:text-base-600"
+                  className="flex-1 bg-transparent border-none text-xs md:text-sm text-base-100 font-semibold focus:ring-0 focus:outline-none placeholder:text-base-600"
                   placeholder="Section title..."
                   value={task.title}
                   onChange={e => updateTask(idx, 'title', e.target.value)}
                 />
                 <button
+                  type="button"
                   onClick={() => setExpandedSection(expandedSection === idx ? null : idx)}
-                  className="p-1.5 rounded-lg text-base-400 hover:text-accent-400 hover:bg-white/4 transition-all"
-                  title="Edit details"
+                  className="p-1.5 rounded-lg text-base-400 hover:text-accent-400 hover:bg-white/5 transition-colors cursor-pointer"
+                  title="Edit details (goal, key points, words)"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => removeTask(idx)}
                   disabled={tasks.length <= 1}
-                  className={`p-1.5 rounded-lg transition-all ${tasks.length <= 1 ? 'text-base-700 cursor-not-allowed' : 'text-base-400 hover:text-signal-error hover:bg-signal-error-dim'}`}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    tasks.length <= 1 ? 'text-base-700 cursor-not-allowed' : 'text-base-400 hover:text-rose-400 hover:bg-rose-500/10'
+                  }`}
                   title="Remove section"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -216,48 +239,55 @@ export function PlanEditor({ plan, onApprove, onRevise, onUpdatePlan }: PlanEdit
 
           {/* Add Section Button */}
           <button
+            type="button"
             onClick={addTask}
-            className="w-full py-3 rounded-xl border border-dashed border-white/10 text-base-400 hover:text-accent-400 hover:border-accent-500/35 hover:bg-accent-500/5 transition-all flex items-center justify-center gap-2 text-sm font-semibold"
+            className="w-full py-2.5 rounded-xl border border-dashed border-white/12 text-base-400 hover:text-accent-400 hover:border-accent-500/40 hover:bg-accent-500/5 transition-all flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer"
           >
             <PlusSquare className="w-4 h-4" />
-            Add Section
+            Add Section to Outline
           </button>
         </div>
 
         {/* AI Revision Feedback */}
-        <div className="mb-5">
+        <div className="mb-4">
+          <label className="text-[10px] font-bold text-base-400 uppercase tracking-wider mb-1.5 block">
+            Natural Language Feedback (Optional)
+          </label>
           <textarea
-            className="w-full bg-base-900/60 border border-white/6 rounded-xl p-3.5 text-sm text-base-100 focus:outline-none focus:border-accent-500/40 focus:shadow-[0_0_10px_var(--color-accent-glow)] transition-all duration-200 resize-none h-20 placeholder:text-base-500"
-            placeholder="Or describe changes and let AI revise the plan..."
+            className="w-full bg-base-950/60 border border-white/8 rounded-xl p-3 text-xs md:text-sm text-base-100 focus:outline-none focus:border-accent-500/40 transition-colors resize-none h-18 placeholder:text-base-600"
+            placeholder="e.g., 'Add a section comparing local RAG with cloud vector databases' or 'Make tone more academic'..."
             value={feedback}
             onChange={e => setFeedback(e.target.value)}
           />
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3.5 justify-end flex-wrap">
+        <div className="flex gap-2.5 justify-end flex-wrap items-center pt-2 border-t border-white/6">
           {feedback.trim().length > 0 && (
             <button
+              type="button"
               onClick={() => { onRevise(feedback); setFeedback(''); }}
-              className="px-4.5 py-2.5 bg-base-800 hover:bg-base-750 text-base-200 rounded-xl text-sm font-semibold transition-all border border-white/6 hover:border-white/10 shadow-sm"
+              className="px-4 py-2 bg-base-800 hover:bg-base-750 text-base-200 rounded-xl text-xs font-semibold transition-colors border border-white/8 hover:border-white/16 cursor-pointer"
             >
-              Revise with AI
+              Request AI Revision
             </button>
           )}
           {isEdited && (
             <button
+              type="button"
               onClick={handleSaveAndApprove}
-              className="px-5 py-2.5 bg-accent-500/10 hover:bg-accent-500/20 text-accent-400 border border-accent-500/20 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-accent-500/12 hover:bg-accent-500/20 text-accent-300 border border-accent-500/25 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Pencil className="w-3.5 h-3.5" />
-              Save Edits & Generate
+              Save Edits & Launch Writers
             </button>
           )}
           <button
+            type="button"
             onClick={onApprove}
-            className="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all"
+            className="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            {isEdited ? 'Approve Original' : 'Approve & Generate'}
+            <span>{isEdited ? 'Approve Original' : 'Approve Outline & Write Content'}</span>
           </button>
         </div>
       </div>

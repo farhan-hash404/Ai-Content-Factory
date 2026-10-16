@@ -266,7 +266,7 @@ def create_synthetic_background_clip(duration: float, output_path: str) -> Optio
 
 
 # ============================================================================
-# TTS — Gemini
+# TTS — Edge (keyless) with a Gemini fallback
 # ============================================================================
 
 def save_pcm_as_wav(pcm_bytes: bytes, output_path: str):
@@ -279,6 +279,26 @@ def save_pcm_as_wav(pcm_bytes: bytes, output_path: str):
 
 
 def generate_tts_voiceover(text: str, voice: str = "Puck") -> Optional[str]:
+    """Synthesise the voiceover and return a path to a temporary .wav, or None.
+
+    Edge TTS first: it needs no credential and no quota, whereas Gemini's TTS
+    free tier allows only a handful of requests per minute — enough to render
+    one short, not enough to render one while a podcast is also rendering.
+    `voice` keeps its Gemini vocabulary ("Puck"); Graph/tts.py maps it.
+    """
+    from Graph import tts
+
+    wav_path = tts.synthesize_to_wav(text, voice=voice)
+    if wav_path:
+        logger.info(f"   ✅ Voiceover synthesised with Edge TTS "
+                    f"(voice: {tts.resolve_voice(voice)}).")
+        return wav_path
+
+    logger.info("   ⚠️ Edge TTS unavailable. Falling back to Gemini TTS...")
+    return _generate_tts_voiceover_gemini(text, voice)
+
+
+def _generate_tts_voiceover_gemini(text: str, voice: str = "Puck") -> Optional[str]:
     """
     Generates speech via Gemini TTS with exponential-backoff retry.
     Returns path to a temporary .wav file, or None on failure.
@@ -287,14 +307,17 @@ def generate_tts_voiceover(text: str, voice: str = "Puck") -> Optional[str]:
     if not api_key:
         logger.error("GOOGLE_API_KEY not set.")
         return None
+    if genai is None or types is None:
+        logger.error("google-genai not installed — no TTS provider left to try.")
+        return None
 
     client = genai.Client(api_key=api_key)
 
     for attempt in range(1, _TTS_MAX_ATTEMPTS + 1):
         try:
-            logger.info(f"   🔊 TTS attempt {attempt}/{_TTS_MAX_ATTEMPTS} (voice: {voice})...")
+            logger.info(f"   🔊 Gemini TTS attempt {attempt}/{_TTS_MAX_ATTEMPTS} (voice: {voice})...")
             response = client.models.generate_content(
-                model="gemini-2.5-flash-preview-tts",
+                model=os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts"),
                 contents=text,
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
@@ -383,9 +406,20 @@ def get_word_timestamps(audio_path: str, model_size: str = "tiny") -> List[dict]
         except Exception as api_err:
             logger.warning(f"   ⚠️ OpenAI API Whisper transcription failed: {api_err}. Trying local fallback...")
 
-    # Local fallback
+    # Local fallback — free, and the only path when OPENAI_API_KEY is unset.
     try:
         import whisper
+        from Graph import tts
+
+        # Whisper decodes audio by shelling out to a bare `ffmpeg`. This project
+        # installs ffmpeg as a wheel whose binary is not on PATH, and the
+        # resulting FileNotFoundError surfaces as "audio file could not be
+        # read" — indistinguishable from a corrupt input. Put it on PATH first.
+        if not tts.ensure_ffmpeg_on_path():
+            logger.warning("   ⚠️ No ffmpeg available; local Whisper cannot decode audio. "
+                           "Falling back to evenly-spaced captions.")
+            return []
+
         logger.info(f"   🎙️ Local Fallback: Transcribing audio (whisper model: {model_size})...")
         model = whisper.load_model(model_size)   # fast; swap for "base" for accuracy
         result = model.transcribe(audio_path, word_timestamps=True)

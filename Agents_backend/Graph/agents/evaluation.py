@@ -232,6 +232,70 @@ Rubric Breakdown:
 
 
 # ============================================================================
+# 3b. DEEPEVAL JUDGE ADAPTER
+# ============================================================================
+# `GEval(model="gemini-2.5-flash")` does NOT work. deepeval resolves a bare
+# string through its own provider registry, which maps unknown names onto its
+# native OpenAI client — so a Gemini model id becomes an OpenAI request with no
+# OpenAI key, and all four metrics fail with an authentication error while the
+# in-house G-Eval beside them succeeds.
+#
+# deepeval also accepts a `DeepEvalBaseLLM` instance, which is the documented
+# way to bring your own judge. Wrapping the chat client that agents/utils.py
+# already configured means the deepeval arm and the in-house arm are graded by
+# the same model through the same endpoint — the precondition for comparing
+# their scores at all.
+#
+# A custom model is "non-native" to deepeval, so it is never asked for token
+# costs; `evaluation_cost` stays None rather than reporting a wrong number.
+
+def _build_deepeval_judge():
+    """Return the object to pass as GEval(model=...), or None if unavailable.
+
+    Returns the plain model-id string on the OpenAI endpoint, where deepeval's
+    native client is correct and gives cost accounting for free.
+    """
+    from Graph.agents.utils import _BASE_URL, llm_judge
+
+    if not _BASE_URL:
+        return _JUDGE_MODEL
+
+    try:
+        from deepeval.models.base_model import DeepEvalBaseLLM
+    except ImportError:
+        return None
+
+    class _LangChainJudge(DeepEvalBaseLLM):
+        """Adapts a LangChain chat client to deepeval's judge interface."""
+
+        def __init__(self, client, name: str):
+            # Set before super().__init__, which calls load_model().
+            self._client = client
+            super().__init__(model=name)
+
+        def load_model(self):
+            return self._client
+
+        def get_model_name(self) -> str:
+            return self.name
+
+        def generate(self, prompt, schema=None, **kwargs):
+            # deepeval passes the metric's Pydantic schema. Returning an
+            # instance of it lets deepeval skip its JSON-repair path entirely,
+            # which is where malformed judge output usually goes wrong.
+            if schema is not None:
+                return self.model.with_structured_output(schema).invoke(prompt)
+            return self.model.invoke(prompt).content
+
+        async def a_generate(self, prompt, schema=None, **kwargs):
+            if schema is not None:
+                return await self.model.with_structured_output(schema).ainvoke(prompt)
+            return (await self.model.ainvoke(prompt)).content
+
+    return _LangChainJudge(llm_judge, _JUDGE_MODEL)
+
+
+# ============================================================================
 # 4. DEEPEVAL (OFFICIAL G-EVAL IMPLEMENTATION, Liu et al. 2023)
 # ============================================================================
 # Runs the same 4 rubrics through the `deepeval` library's `GEval` metric,
@@ -273,6 +337,13 @@ def deepeval_evaluation_node(state: State) -> Dict[str, Any]:
         _emit(job_id, "deepeval_evaluator", "error", msg)
         return {}
 
+    judge = _build_deepeval_judge()
+    if judge is None:
+        msg = "deepeval judge could not be constructed. Skipping deepeval G-Eval."
+        logger.warning(f"[{job_id}] {msg}")
+        _emit(job_id, "deepeval_evaluator", "error", msg)
+        return {}
+
     graded_text, coverage = truncate_for_eval(
         blog_content, _GEVAL_CHAR_LIMIT, "DeepEval G-Eval", job_id
     )
@@ -302,7 +373,7 @@ def deepeval_evaluation_node(state: State) -> Dict[str, Any]:
                 "Reward smooth transitions between sections, a clear hierarchy, and absence "
                 "of repetition or disjointed fragments. Penalize abrupt jumps and contradictions."
             ),
-            model=_JUDGE_MODEL,
+            model=judge,
             evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT],
         ),
         "relevance": GEval(
@@ -312,7 +383,7 @@ def deepeval_evaluation_node(state: State) -> Dict[str, Any]:
                 "'input', integrates relevant keywords naturally, and thoroughly covers the "
                 "user's likely search intent. Penalize off-topic filler."
             ),
-            model=_JUDGE_MODEL,
+            model=judge,
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         ),
         "accuracy": GEval(
@@ -322,7 +393,7 @@ def deepeval_evaluation_node(state: State) -> Dict[str, Any]:
                 "are supported by 'retrieval_context'. Penalize hallucinations, fabricated facts, "
                 "and unsupported numeric claims. Reward precise mapping of claims to sources."
             ),
-            model=_JUDGE_MODEL,
+            model=judge,
             evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.RETRIEVAL_CONTEXT],
         ),
         "tone_alignment": GEval(
@@ -332,7 +403,7 @@ def deepeval_evaluation_node(state: State) -> Dict[str, Any]:
                 f"'{target_tone}'. Penalize generic AI-filler phrases (e.g., 'dive in', "
                 f"'testament to', 'in conclusion', 'in today's fast-paced world') and robotic phrasing."
             ),
-            model=_JUDGE_MODEL,
+            model=judge,
             evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT],
         ),
     }

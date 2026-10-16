@@ -84,9 +84,104 @@ def test_research_node_downgrades_when_every_search_returns_nothing():
         "recency_days": 3650,
         "_job_id": "",
     }
-    with patch.object(research_mod, "_tavily_search", return_value=[]):
+    with patch.object(research_mod, "_web_search", return_value=[]):
         out = research_node(state)
 
     assert out["evidence"] == []
     assert out["mode"] == "closed_book"
     assert out["needs_research"] is False
+
+
+class TestSearchProviderFallback:
+    """Research must degrade, not disappear, when Tavily is unavailable.
+
+    Tavily was the only search provider, so a missing or exhausted key turned
+    every open_book run into an ungrounded one — the post still shipped, just
+    with no citations. DuckDuckGo needs no credential, so it is the safety net.
+    """
+
+    def test_tavily_is_preferred_when_it_returns_results(self, monkeypatch):
+        """Tavily first: its results carry article text and a real published date."""
+        from Graph.agents import research as research_mod
+
+        calls = []
+        monkeypatch.setattr(
+            research_mod, "_tavily_search",
+            lambda *a, **k: calls.append("tavily") or [{"title": "t", "url": "u", "snippet": "s"}],
+        )
+        monkeypatch.setattr(
+            research_mod, "_duckduckgo_search",
+            lambda *a, **k: calls.append("ddg") or [],
+        )
+
+        assert len(research_mod._web_search("q")) == 1
+        assert calls == ["tavily"], "DuckDuckGo must not be called when Tavily answers"
+
+    def test_duckduckgo_is_used_when_tavily_returns_nothing(self, monkeypatch):
+        """Covers both a missing key and an exhausted quota — both return []."""
+        from Graph.agents import research as research_mod
+
+        monkeypatch.setattr(research_mod, "_tavily_search", lambda *a, **k: [])
+        monkeypatch.setattr(
+            research_mod, "_duckduckgo_search",
+            lambda *a, **k: [{"title": "t", "url": "u", "snippet": "s", "source": "duckduckgo"}],
+        )
+
+        results = research_mod._web_search("q")
+        assert len(results) == 1 and results[0]["source"] == "duckduckgo"
+
+    def test_no_tavily_key_does_not_attempt_a_tavily_request(self, monkeypatch):
+        from Graph.agents import research as research_mod
+
+        monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+        assert research_mod._tavily_search("q") == []
+
+    def test_recency_window_rounds_up_to_a_containing_bucket(self, monkeypatch):
+        """DuckDuckGo has fixed time buckets, not a day count.
+
+        Rounding DOWN would silently discard sources the router considered in
+        scope, so each window must map to the tightest bucket that still
+        CONTAINS it.
+        """
+        from Graph.agents import research as research_mod
+
+        seen = {}
+
+        class FakeDDGS:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def text(self, query, max_results=5, timelimit=None):
+                seen["timelimit"] = timelimit
+                return []
+
+        import sys
+        import types
+        module = types.ModuleType("ddgs")
+        module.DDGS = FakeDDGS
+        monkeypatch.setitem(sys.modules, "ddgs", module)
+
+        for days, expected in [(1, "d"), (7, "w"), (8, "m"), (31, "m"),
+                               (90, "y"), (366, "y"), (3650, None)]:
+            research_mod._duckduckgo_search("q", recency_days=days)
+            assert seen["timelimit"] == expected, (
+                f"{days} days mapped to {seen['timelimit']!r}, expected {expected!r}"
+            )
+
+    def test_missing_ddgs_package_is_not_fatal(self, monkeypatch):
+        """The fallback is a safety net; its absence must not break research."""
+        import builtins
+        from Graph.agents import research as research_mod
+
+        real_import = builtins.__import__
+
+        def blocked(name, *args, **kwargs):
+            if name == "ddgs":
+                raise ImportError("no ddgs")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", blocked)
+        assert research_mod._duckduckgo_search("q") == []

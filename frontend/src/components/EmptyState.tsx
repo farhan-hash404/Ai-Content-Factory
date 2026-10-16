@@ -16,35 +16,27 @@ export function EmptyState({
   error?: string | null;
 }) {
   return (
-    <div className="glass-panel p-12 rounded-2xl flex flex-col items-center justify-center text-center min-h-[400px] border border-white/4 relative overflow-hidden group max-w-3xl mx-auto">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-accent-500/5 rounded-full blur-3xl group-hover:bg-accent-500/10 transition-all duration-700"></div>
-
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="relative z-10 w-24 h-24 bg-base-900 rounded-full flex items-center justify-center mb-6 shadow-xl border border-white/6 text-accent-400 group-hover:scale-105 transition-transform duration-500"
-      >
+    <div className="card-bento p-10 md:p-14 flex flex-col items-center justify-center text-center min-h-[380px] max-w-2xl mx-auto">
+      <div className="w-16 h-16 bg-accent-500/10 rounded-2xl flex items-center justify-center mb-5 border border-accent-500/20 text-accent-400 shadow-sm">
         {icon}
-      </motion.div>
-      <h3 className="text-2xl font-bold text-base-50 mb-3">{title}</h3>
-      <p className="text-base-400 mb-8 max-w-md text-sm leading-relaxed">{description}</p>
+      </div>
+      <h3 className="text-xl font-bold text-base-50 mb-2">{title}</h3>
+      <p className="text-base-400 mb-6 max-w-md text-xs md:text-sm leading-relaxed">{description}</p>
 
       {error && (
-        <div className="mb-8 p-4 rounded-xl bg-signal-error-dim/20 border border-signal-error/20 text-signal-error text-xs max-w-md flex items-center gap-3 relative z-10">
-          <div className="w-2 h-2 rounded-full bg-signal-error animate-pulse shrink-0"></div>
+        <div className="mb-6 p-3 rounded-xl bg-signal-error-dim/20 border border-signal-error/25 text-signal-error text-xs max-w-md flex items-center gap-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-signal-error animate-pulse shrink-0"></div>
           <span className="text-left font-medium">{error}</span>
         </div>
       )}
 
-      <motion.button
+      <button
         onClick={onGenerate}
-        className="btn-primary px-8 py-3.5 rounded-xl font-bold shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:-translate-y-1 transition-all flex items-center gap-2 z-10"
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.97 }}
+        className="btn-primary px-6 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-md"
       >
-        <LayoutTemplate className="w-5 h-5" /> Generate Now
-      </motion.button>
+        <LayoutTemplate className="w-4 h-4" />
+        <span>Generate Now</span>
+      </button>
     </div>
   );
 }

@@ -33,6 +33,11 @@ Agents_backend/data/
 # Golden test artifacts
 Agents_backend/tests/golden/_runs/
 
+# MoviePy scratch files. It writes the extracted audio track next to the
+# working directory while compositing (short TEMP_MPY_wvf_snd.mp4) and does not
+# always clean up if a render is interrupted.
+*TEMP_MPY_*
+
 # Caches & Test Results
 .deepeval/
 .pytest_cache/

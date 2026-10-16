@@ -96,34 +96,43 @@ interface ChatViewProps {
   openSettings?: () => void;
 }
 
-/* ---------- Hero Feature Cards ---------- */
-const HERO_FEATURES = [
+/* ---------- Hero Feature Templates ---------- */
+const HERO_TEMPLATES = [
   {
     icon: FileText,
-    title: 'Research & Write',
-    desc: 'Multi-agent pipeline with web research, evidence grounding, and QA audit.',
-    gradient: 'from-amber-500/20 to-orange-600/10',
-    sampleTopic: 'How LangGraph enables persistent agent loops',
+    title: 'Research & Deep Dive',
+    desc: 'Multi-query web scraping, semantic chunking, and grounded section writing.',
+    sampleTopic: 'How LangGraph enables persistent multi-agent execution loops',
     sampleTone: 'technical',
     sampleSections: 4,
+    badge: 'Standard Workflow'
   },
   {
     icon: Film,
-    title: 'Video Generation',
-    desc: 'Automated storyboard, AI voiceover, and Pexels B-roll compilation.',
-    gradient: 'from-blue-500/20 to-indigo-600/10',
-    sampleTopic: 'A brief guide to stock video synthesis with Pexels',
+    title: 'Video Storyboard & Voice',
+    desc: 'Scripting, Edge TTS voiceover, Whisper timestamps, and Pexels stock B-roll.',
+    sampleTopic: 'Autonomous AI agents: From reasoning loops to production systems',
     sampleTone: 'conversational',
-    sampleSections: 2,
+    sampleSections: 3,
+    badge: 'Video Ready'
   },
   {
     icon: Podcast,
-    title: 'Podcast Studio',
-    desc: 'Gemini-powered conversational audio with custom voice synthesis.',
-    gradient: 'from-emerald-500/20 to-teal-600/10',
-    sampleTopic: 'The future of generative voice acting and audio design',
+    title: 'Conversational Podcast',
+    desc: 'Two-host script synthesis with neural voice generation and studio mastering.',
+    sampleTopic: 'The future of generative voice synthesis and neural dialogue',
     sampleTone: 'educational',
     sampleSections: 3,
+    badge: 'Audio Episode'
+  },
+  {
+    icon: ShieldAlert,
+    title: 'Academic Audit & Eval',
+    desc: 'In-house G-Eval scorecard and DeepEval LLM-as-a-judge academic rubrics.',
+    sampleTopic: 'Empirical comparison of LLM-as-judge alignment and scoring rubrics',
+    sampleTone: 'academic',
+    sampleSections: 4,
+    badge: 'Evaluation Focus'
   },
 ] as const;
 
@@ -145,9 +154,6 @@ export function ChatView({
   const [sourceMode, setSourceMode] = useState<SourceMode>('hybrid');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-
-
-
   const clearUpload = () => {
     setUploadStatus('idle');
     setUploadName('');
@@ -166,7 +172,6 @@ export function ChatView({
       const result = await APIClient.uploadDocument(file);
       setUploadResult(result);
       setUploadStatus('ready');
-      // If the user hasn't typed a topic yet, pre-fill the derived one.
       if (!topicInput.trim() && result.derived_topic) {
         setTopicInput(result.derived_topic);
       }
@@ -177,7 +182,6 @@ export function ChatView({
   };
 
   const submitJob = (overrideTopic?: string) => {
-    // For auto_topic, fall back to the derived topic if the textarea is empty.
     let topic = (overrideTopic ?? topicInput).trim();
     if (!topic && sourceMode === 'auto_topic' && uploadResult?.derived_topic) {
       topic = uploadResult.derived_topic;
@@ -205,380 +209,363 @@ export function ChatView({
   const showHero = !currentJob && events.length === 0;
 
   return (
-    <main className="flex-1 flex flex-col p-4 md:p-8 relative overflow-y-auto md:overflow-hidden">
-      <div className="md:flex-1 overflow-visible md:overflow-y-auto pr-0 md:pr-4 flex flex-col gap-5 pb-4 scroll-smooth">
-        <header className="mb-2 shrink-0 fade-in">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-base-50 mb-1.5">
-            {!currentJob
-              ? 'Dashboard'
-              : currentJob.status === 'completed'
-                ? 'Generation Complete'
-                : currentJob.status === 'failed'
-                  ? 'Pipeline Interrupted'
+    <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 relative overflow-y-auto">
+      <div className="flex-1 flex flex-col gap-6 max-w-5xl w-full mx-auto pb-6">
+        
+        {/* Top Header / Context */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-base-50">
+              {!currentJob
+                ? 'Content Studio'
+                : currentJob.status === 'completed'
+                  ? 'Generation Complete'
+                  : currentJob.status === 'failed'
+                    ? 'Pipeline Paused'
+                    : currentJob.status === 'awaiting_approval'
+                      ? 'Review Outline Plan'
+                      : 'Running Multi-Agent Graph…'}
+            </h2>
+            <p className="text-xs md:text-sm text-base-400 mt-1 flex items-center gap-2">
+              <span className="font-mono text-base-500">LangGraph Core</span>
+              <span>•</span>
+              <span>14 Specialized Nodes</span>
+              <span>•</span>
+              <span className="text-accent-400 font-medium">HITL Enabled</span>
+            </p>
+          </div>
+
+          {currentJob && (
+            <div className="flex items-center gap-2.5">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 border ${
+                currentJob.status === 'completed'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   : currentJob.status === 'awaiting_approval'
-                    ? 'Review Outline'
-                    : 'Generating…'}
-          </h2>
-          <p className="text-base-400 text-sm flex items-center gap-2.5">
-            <span className="font-mono text-[11px] text-base-500">Powered by LangGraph</span>
-            {currentJob && currentJob.status !== 'completed' && currentJob.status !== 'failed' && (
-              <span className="px-2 py-0.5 rounded-md bg-accent-glow text-accent-400 text-[11px] font-semibold border border-accent-500/20 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-500 status-pulse" /> Processing
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : currentJob.status === 'failed'
+                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      : 'bg-accent-500/10 text-accent-400 border-accent-500/20'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  currentJob.status === 'completed' ? 'bg-emerald-400' :
+                  currentJob.status === 'awaiting_approval' ? 'bg-amber-400 animate-ping' :
+                  currentJob.status === 'failed' ? 'bg-rose-400' :
+                  'bg-accent-400 animate-pulse'
+                }`} />
+                {currentJob.status.replace('_', ' ')}
               </span>
-            )}
-            {currentJob?.status === 'completed' && (
-              <span className="px-2 py-0.5 rounded-md bg-signal-success-dim text-signal-success text-[11px] font-semibold border border-signal-success/20 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3" /> Completed
-              </span>
-            )}
-          </p>
-        </header>
-        {/* -------- Welcome Hero (shown when no job is active) -------- */}
-        {showHero && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center justify-center py-3 md:py-12 relative"
-          >
-            {/* Ambient glow behind heading */}
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-accent-500/8 rounded-full blur-[80px] pointer-events-none hidden md:block" />
-
-            {/* Version Badge & Active Model */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="hidden sm:flex items-center gap-2.5 mb-5 relative z-10"
-            >
-              <span className="glass-pill px-3 py-1 text-[10px] font-bold text-accent-400 tracking-wider uppercase border border-accent-500/20">
-                Orchestration Engine v2.0
-              </span>
-              <span className="glass-pill px-3 py-1 text-[10px] font-medium text-base-300 border border-white/6 flex items-center gap-1.5 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-signal-success animate-pulse"></span>
-                Active LLM: <span className="font-mono text-accent-400 font-bold">{selectedModel}</span>
-              </span>
-            </motion.div>
-
-            <motion.h3
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.5 }}
-              className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-center mb-2 md:mb-3 text-shimmer relative z-10"
-            >
-              Create Something Amazing
-            </motion.h3>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="text-base-400 text-center max-w-lg mb-4 md:mb-8 px-2 text-[13px] md:text-sm leading-relaxed relative z-10"
-            >
-              Enter a topic below and our multi-agent pipeline will research, write, and polish a publication-ready blog — with optional video, podcast, and social campaigns.
-            </motion.p>
-
-            {/* Feature cards */}
-            <div className="hidden md:grid md:grid-cols-3 gap-4 w-full max-w-3xl relative z-10">
-              {HERO_FEATURES.map((feat, i) => (
-                <motion.div
-                  key={feat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + i * 0.1, duration: 0.4 }}
-                  onClick={() => {
-                    setTopicInput(feat.sampleTopic);
-                    setTone(feat.sampleTone);
-                    setSections(feat.sampleSections);
-                  }}
-                  className={`glass-panel rounded-2xl p-5 border border-white/6 hover-lift cursor-pointer hover:border-accent-500/30 bg-gradient-to-br ${feat.gradient} flex flex-col justify-between group`}
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:border-accent-500/20 transition-all duration-300">
-                      <feat.icon className="w-5 h-5 text-accent-400" />
-                    </div>
-                    <h4 className="font-bold text-base-100 text-sm mb-1">{feat.title}</h4>
-                    <p className="text-[12px] text-base-400 leading-relaxed mb-4">{feat.desc}</p>
-                  </div>
-                  <span className="text-[10px] text-accent-400 font-semibold underline underline-offset-2 opacity-70 group-hover:opacity-100 group-hover:text-accent-300 transition-all duration-200">
-                    Use Template
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Keep templates available on mobile without pushing the prompt below the fold. */}
-            <div className="flex md:hidden flex-wrap justify-center gap-2 w-full relative z-10">
-              {HERO_FEATURES.map((feat) => {
-                const Icon = feat.icon;
-                return (
-                  <button
-                    key={feat.title}
-                    type="button"
-                    onClick={() => {
-                      setTopicInput(feat.sampleTopic);
-                      setTone(feat.sampleTone);
-                      setSections(feat.sampleSections);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 bg-base-900/70 px-2.5 py-1.5 text-[11px] font-semibold text-base-300 transition-colors hover:border-accent-500/35 hover:text-accent-400"
-                  >
-                    <Icon className="h-3.5 w-3.5 text-accent-400" />
-                    {feat.title}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* -------- Job Controls Banner (Resume Checkpoint & Actions) -------- */}
-        {currentJob && (
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl glass-panel border border-white/8 backdrop-blur-md mb-2 w-full">
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${
-                currentJob.status === 'completed' ? 'bg-emerald-400' :
-                currentJob.status === 'failed' ? 'bg-signal-error' :
-                currentJob.status === 'awaiting_approval' ? 'bg-amber-400 animate-ping' :
-                'bg-accent-400 animate-pulse'
-              }`} />
-              <span className="text-xs font-bold text-base-100 uppercase tracking-wider">
-                Job #{currentJob.id.slice(0, 8)} — {currentJob.status.replace('_', ' ')}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {(currentJob.status === 'failed' || currentJob.status === 'running') && handleResumeJob && (
-                <button
-                  onClick={() => handleResumeJob(currentJob.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-500/20 text-accent-400 hover:bg-accent-500/30 border border-accent-500/30 transition-all cursor-pointer shadow-sm"
-                  title="Resume pipeline execution from the last saved SQLite checkpoint"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Resume Checkpoint
-                </button>
-              )}
 
               {currentJob.status === 'completed' && (
                 <button
                   onClick={() => navTo('content')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 transition-all cursor-pointer"
+                  className="btn-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  View Studio Draft
+                  <span>Open in Studio</span>
                 </button>
+              )}
+            </div>
+          )}
+        </header>
+
+        {/* -------- Welcome Hero & Quick Templates -------- */}
+        {showHero && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* Mission banner */}
+            <div className="card-bento p-6 md:p-8 relative overflow-hidden">
+              <div className="max-w-2xl">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-accent-400 px-2.5 py-1 rounded-full bg-accent-500/10 border border-accent-500/20 inline-block mb-3">
+                  Production-Grade Agent Pipeline
+                </span>
+                <h3 className="text-xl md:text-2xl font-bold text-base-50 tracking-tight leading-snug mb-2">
+                  Autonomous Research, Synthesis & Evaluation
+                </h3>
+                <p className="text-xs md:text-sm text-base-400 leading-relaxed">
+                  Provide a topic or upload source documentation. The engine coordinates web research, drafts structured outlines, writes sections concurrently, verifies citations, and benchmarks content quality.
+                </p>
+              </div>
+            </div>
+
+            {/* Template Presets Grid */}
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-base-400 mb-3 px-1">
+                Quick-Start Presets
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {HERO_TEMPLATES.map((tmpl) => {
+                  const Icon = tmpl.icon;
+                  return (
+                    <div
+                      key={tmpl.title}
+                      onClick={() => {
+                        setTopicInput(tmpl.sampleTopic);
+                        setTone(tmpl.sampleTone);
+                        setSections(tmpl.sampleSections);
+                      }}
+                      className="card-bento p-4 cursor-pointer hover:border-accent-500/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded bg-white/4 text-base-400">
+                            {tmpl.badge}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-base-100 mb-1 group-hover:text-accent-300 transition-colors">
+                          {tmpl.title}
+                        </h4>
+                        <p className="text-[11px] text-base-400 leading-relaxed">
+                          {tmpl.desc}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-white/6 flex items-center justify-between text-[10px] text-accent-400 font-medium">
+                        <span>Use preset</span>
+                        <CornerDownLeft className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* -------- Active Pipeline Tracker -------- */}
+        {currentJob && (
+          <div className="space-y-4">
+            <ProgressTracker events={events} jobStatus={currentJob.status} />
+
+            {/* Prompt preview chip */}
+            <div className="card-bento p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-base-500 block mb-0.5">Topic Objective</span>
+                <p className="text-sm font-semibold text-base-100">{currentJob.topic}</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-base-400 shrink-0">
+                <span className="px-2 py-0.5 rounded bg-white/5 border border-white/8 font-mono">Tone: {currentJob.tone}</span>
+                {currentJob.keywords && currentJob.keywords.length > 0 && (
+                  <span className="px-2 py-0.5 rounded bg-white/5 border border-white/8 font-mono">
+                    {currentJob.keywords.length} keywords
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* -------- HITL Plan Approval Gate -------- */}
+        {isAwaitingApproval && currentJob?.plan && (
+          <div className="card-bento border-amber-500/30 bg-amber-500/5 p-5 md:p-6 space-y-4 animate-fadeIn">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
+                <ListOrdered className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300">
+                    Human-in-the-Loop Review
+                  </span>
+                  <span className="text-xs text-base-400">Step 2 of 4</span>
+                </div>
+                <h3 className="text-base font-bold text-base-100 mt-1">Review & Customize Generation Outline</h3>
+                <p className="text-xs text-base-300 mt-1 leading-relaxed">
+                  The Orchestrator planned the section hierarchy below. You can modify titles, adjust targets, or ask the AI to re-plan before parallel workers write content.
+                </p>
+              </div>
+            </div>
+
+            <PlanEditor
+              plan={currentJob.plan}
+              jobId={currentJob.id}
+              onApprove={() => handleApprovePlan(currentJob.id)}
+              onRevise={(fb) => handleRevisePlan(currentJob.id, fb)}
+              onUpdatePlan={(plan) => handleUpdatePlan(currentJob.id, plan)}
+            />
+          </div>
+        )}
+
+        {/* -------- User Objective Card (when job is active) -------- */}
+        {currentJob && (
+          <div className="card-bento p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-accent-500/25 bg-accent-500/5">
+            <div>
+              <div className="text-[10px] font-bold text-accent-400 uppercase tracking-wider mb-1">
+                Active Topic Request
+              </div>
+              <p className="text-sm md:text-base font-semibold text-base-100">
+                {currentJob.topic}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-base-300 shrink-0">
+              <span className="px-2.5 py-1 rounded-lg bg-base-900 border border-white/8 font-mono">
+                Tone: <span className="text-base-100 font-semibold">{currentJob.tone}</span>
+              </span>
+              {currentJob.keywords && currentJob.keywords.length > 0 && (
+                <span className="px-2.5 py-1 rounded-lg bg-base-900 border border-white/8 font-mono">
+                  {currentJob.keywords.length} keywords
+                </span>
               )}
             </div>
           </div>
         )}
 
-        {/* -------- Progress Tracker (when a job is running) -------- */}
-        {currentJob && currentJob.status !== 'completed' && currentJob.status !== 'failed' && events.length > 0 && (
-          <ProgressTracker events={events} jobStatus={currentJob.status} />
-        )}
-
-        {currentJob && (
-          <div className="self-end max-w-2xl w-full">
-            <div className="aurora-bubble p-5 rounded-2xl rounded-tr-sm">
-              <p className="text-base font-medium">Write a blog on: {currentJob.topic}</p>
-              <p className="text-sm opacity-70 mt-1">Tone: {currentJob.tone}</p>
+        {/* -------- Real-Time Agent Stream Timeline -------- */}
+        {events.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-base-500">
+                Agent Activity Stream ({events.length})
+              </span>
+              {currentJob?.status === 'running' && (
+                <span className="text-[11px] text-accent-400 font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
+                  Live Orchestration
+                </span>
+              )}
             </div>
-            <div className="text-right mt-1.5 text-[11px] text-base-500 font-medium">You</div>
-          </div>
-        )}
 
-        {events.map((event, i) => {
-          const config = getAgentConfig(event.agent_name);
-          const AgentIcon = config.icon;
-          return (
-            <motion.div
-              key={i}
-              className="self-start max-w-3xl flex gap-3.5 w-full"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${config.bgColor}`}>
-                <AgentIcon className={`w-4 h-4 ${config.iconColor}`} />
-              </div>
-              <div className="glass-panel p-4.5 rounded-2xl rounded-tl-sm flex-1 border border-white/5 shadow-sm">
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${config.bgColor} ${config.textColor}`}>
-                      {event.agent_name}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-base-500 font-mono">{new Date(event.timestamp * 1000).toLocaleTimeString()}</span>
-                </div>
-                <p className="text-base-200 text-sm flex items-center gap-2.5 leading-relaxed mt-2.5">
-                  {event.status === 'error'
-                    ? <span className="text-signal-error font-bold text-xs shrink-0">ERR</span>
-                    : (event.status === 'working' || event.status === 'started')
-                         && i === events.length - 1
-                         && currentJob?.status !== 'completed'
-                         && currentJob?.status !== 'failed'
-                      ? <RefreshCw className="w-3.5 h-3.5 text-accent-400 animate-spin shrink-0" />
-                      : <CheckCircle2 className="w-4 h-4 text-signal-success shrink-0" />}
-                  <span className="flex-1">{event.message}</span>
-                </p>
-              </div>
-            </motion.div>
-          );
-        })}
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+              {events.map((event, i) => {
+                const config = getAgentConfig(event.agent_name);
+                const AgentIcon = config.icon;
+                const isLatest = i === events.length - 1;
+                const isWorking = (event.status === 'working' || event.status === 'started') && isLatest && currentJob?.status === 'running';
 
-        {events.length === 0 && currentJob?.status === 'completed' && (
-          <div className="self-start max-w-3xl flex gap-3 w-full">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-base-800 border border-white/6">
-              <Network className="w-4 h-4 text-accent-400" />
-            </div>
-            <div className="glass-panel p-4 rounded-2xl rounded-tl-sm flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="font-semibold text-sm text-accent-400 capitalize">system</span>
-                {currentJob.completed_at && <span className="text-[11px] text-base-500 font-mono">{new Date(currentJob.completed_at).toLocaleTimeString()}</span>}
-              </div>
-              <p className="text-base-200 text-sm flex items-center gap-2 leading-relaxed">
-                <CheckCircle2 className="w-4 h-4 text-signal-success shrink-0" />
-                Historical job completed successfully.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Completed job also gets a progress tracker showing all-done */}
-        {currentJob?.status === 'completed' && (
-          <ProgressTracker events={events} jobStatus={currentJob.status} />
-        )}
-
-        {isAwaitingApproval && currentJob?.plan && (
-          <PlanEditor
-            plan={currentJob.plan}
-            jobId={currentJob.id}
-            onApprove={() => handleApprovePlan(currentJob.id)}
-            onRevise={(fb) => handleRevisePlan(currentJob.id, fb)}
-            onUpdatePlan={(plan) => handleUpdatePlan(currentJob.id, plan)}
-          />
-        )}
-
-        {/* -------- Failed Job Resume Banner -------- */}
-        {currentJob?.status === 'failed' && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-            className="w-full max-w-3xl self-start"
-          >
-            <div className="relative overflow-hidden rounded-2xl border border-signal-error/30 bg-signal-error-dim/20 backdrop-blur-xl shadow-md">
-              {/* Subtle animated glow bar at top */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-signal-error/60 to-transparent" />
-
-              <div className="p-5 md:p-6">
-                {/* Header */}
-                <div className="flex items-start gap-3.5 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-signal-error-dim border border-signal-error/25 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-5 h-5 text-signal-error" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-signal-error mb-0.5">Pipeline Interrupted</h4>
-                    <p className="text-sm text-base-300 leading-relaxed">
-                      This job encountered an error and was halted. Your progress is checkpointed — you can resume from exactly where it stopped.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Error Details */}
-                {currentJob.error_message && (
-                  <div className="mb-4 p-3 rounded-xl bg-base-950/60 border border-signal-error/20">
-                    <div className="text-[10px] font-bold text-base-400 uppercase tracking-wider mb-1.5">Error Details</div>
-                    <p className="text-xs text-signal-error font-mono leading-relaxed break-all font-medium">
-                      {currentJob.error_message}
-                    </p>
-                  </div>
-                )}
-
-                {/* Resume Action */}
-                <div className="flex items-center gap-3">
-                  <motion.button
-                    onClick={async () => {
-                      if (!handleResumeJob || isResuming) return;
-                      setIsResuming(true);
-                      try {
-                        await handleResumeJob(currentJob.id);
-                      } finally {
-                        // Reset after a short delay to allow the UI to update
-                        setTimeout(() => setIsResuming(false), 2000);
-                      }
-                    }}
-                    disabled={isResuming || !handleResumeJob}
-                    className={`resume-btn flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                      isResuming
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 cursor-wait'
-                        : 'bg-gradient-to-r from-amber-500 to-orange-500 text-base-950 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-[0.98]'
-                    }`}
-                    whileHover={!isResuming ? { scale: 1.03 } : undefined}
-                    whileTap={!isResuming ? { scale: 0.97 } : undefined}
+                return (
+                  <motion.div
+                    key={i}
+                    className="card-bento p-3.5 flex items-start gap-3 transition-all"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    {isResuming ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Resuming…
-                      </>
-                    ) : (
-                      <>
-                        <RotateCcw className="w-4 h-4" />
-                        Resume from Checkpoint
-                      </>
-                    )}
-                  </motion.button>
-                  <span className="text-[11px] text-base-500">
-                    Picks up from the last completed step — no work is repeated.
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${config.bgColor}`}>
+                      <AgentIcon className={`w-4 h-4 ${config.iconColor}`} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${config.bgColor} ${config.textColor}`}>
+                          {event.agent_name.replace('_', ' ')}
+                        </span>
+                        <span className="text-[10px] text-base-500 font-mono">
+                          {new Date(event.timestamp * 1000).toLocaleTimeString()}
+                        </span>
+                      </div>
+
+                      <div className="text-xs md:text-sm text-base-200 leading-relaxed flex items-center gap-2 mt-1">
+                        {event.status === 'error' ? (
+                          <span className="text-signal-error font-bold text-xs shrink-0 px-1.5 py-0.5 rounded bg-signal-error/10 border border-signal-error/20">
+                            Failed
+                          </span>
+                        ) : isWorking ? (
+                          <RefreshCw className="w-3.5 h-3.5 text-accent-400 animate-spin shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-signal-success shrink-0" />
+                        )}
+                        <span className="flex-1 break-words">{event.message}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* -------- Pipeline Interrupted / Resumption Banner -------- */}
+        {currentJob?.status === 'failed' && (
+          <div className="card-bento border-rose-500/30 bg-rose-500/5 p-5 md:p-6 space-y-4 animate-fadeIn">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300">
+                    Execution Halted
                   </span>
                 </div>
+                <h3 className="text-base font-bold text-base-100 mt-1">Pipeline Interrupted</h3>
+                <p className="text-xs text-base-300 mt-1 leading-relaxed">
+                  Execution stopped. Thanks to SQLite state checkpoints, you can resume execution without repeating previous research or LLM calls.
+                </p>
+                {currentJob.error_message && (
+                  <div className="mt-2.5 p-3 rounded-lg bg-base-950/80 border border-white/8 text-xs font-mono text-rose-300 break-all">
+                    {currentJob.error_message}
+                  </div>
+                )}
               </div>
             </div>
-          </motion.div>
-        )}
 
-        {/* Show progress tracker for failed jobs too (shows where it stopped) */}
-        {currentJob?.status === 'failed' && events.length > 0 && (
-          <ProgressTracker events={events} jobStatus={currentJob.status} />
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={async () => {
+                  if (!handleResumeJob || isResuming) return;
+                  setIsResuming(true);
+                  try {
+                    await handleResumeJob(currentJob.id);
+                  } finally {
+                    setTimeout(() => setIsResuming(false), 2000);
+                  }
+                }}
+                disabled={isResuming || !handleResumeJob}
+                className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer"
+              >
+                {isResuming ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Resuming from Checkpoint…</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Resume from Last Step</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         )}
-
 
       </div>
 
+      {/* -------- Generation Input Composer Deck -------- */}
       {(!currentJob || currentJob.status === 'completed' || currentJob.status === 'failed') && (
         <div className="w-full max-w-4xl mx-auto mt-4 shrink-0 z-30">
+          
+          {/* Topic validation error */}
           {topicError && (
-            <div className="max-w-4xl mx-auto mb-3 fade-in">
-              <div className="flex items-start gap-3 p-3.5 pr-2 rounded-xl border border-signal-error/30 bg-signal-error-dim text-signal-error">
-                <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-                <div className="flex-1 text-sm leading-relaxed">
-                  <span className="font-semibold">Topic rejected.</span>{' '}
-                  <span className="text-base-200">{topicError.reason}</span>
-                  {topicError.suggested_topic && (
-                    <button
-                      onClick={() => {
-                        setTopicInput(topicError.suggested_topic!);
-                        clearTopicError?.();
-                      }}
-                      className="block mt-2 text-xs text-accent-300 hover:text-accent-200 underline underline-offset-2"
-                    >
-                      Try this instead: "{topicError.suggested_topic}"
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={() => clearTopicError?.()}
-                  className="p-1.5 text-base-400 hover:text-base-100 rounded-md hover:bg-white/5 shrink-0"
-                  aria-label="Dismiss"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <div className="mb-3 p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+              <div className="flex-1">
+                <span className="font-bold">Topic validation rejected:</span> {topicError.reason}
+                {topicError.suggested_topic && (
+                  <button
+                    onClick={() => {
+                      setTopicInput(topicError.suggested_topic!);
+                      clearTopicError?.();
+                    }}
+                    className="block mt-1.5 text-accent-300 hover:underline font-semibold"
+                  >
+                    Use suggested topic: "{topicError.suggested_topic}"
+                  </button>
+                )}
               </div>
+              <button onClick={() => clearTopicError?.()} className="p-1 hover:text-white cursor-pointer">
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
-
-          <div className="w-full max-w-4xl mx-auto rounded-3xl p-3.5 bg-base-900/90 dark:bg-base-950/90 backdrop-blur-2xl border border-base-750/80 hover:border-accent-500/40 focus-within:border-accent-500/60 focus-within:shadow-[0_8px_35px_rgba(245,158,11,0.14)] shadow-2xl transition-all duration-300 flex flex-col gap-2.5">
-
+          {/* Main Composer Bento Card */}
+          <div className="card-bento p-4 shadow-xl border-white/10 hover:border-accent-500/30 focus-within:border-accent-500/50 transition-all flex flex-col gap-3">
+            
+            {/* Document attachment chip */}
             {uploadStatus !== 'idle' && (
               <UploadChip
                 status={uploadStatus}
@@ -596,155 +583,155 @@ export function ChatView({
               type="file"
               accept={ACCEPTED_UPLOAD_TYPES}
               className="hidden"
-              onChange={e => { handleFileSelected(e.target.files?.[0]); }}
+              onChange={e => handleFileSelected(e.target.files?.[0])}
             />
 
-            {/* Prompt Textarea */}
-            <div className="w-full px-1">
+            {/* Prompt input field */}
+            <div className="w-full">
               <textarea
-                className="w-full bg-transparent border-none text-base-100 placeholder-base-400/70 text-base font-medium min-h-[52px] max-h-[180px] resize-none focus:outline-none focus:ring-0 leading-relaxed font-sans"
+                className="w-full bg-transparent border-none text-base-100 placeholder:text-base-500 text-sm md:text-base font-medium min-h-[58px] max-h-[180px] resize-none focus:outline-none focus:ring-0 leading-relaxed font-sans"
                 placeholder={
                   uploadStatus === 'ready' && sourceMode === 'auto_topic'
                     ? (uploadResult?.derived_topic
-                        ? `Auto-topic ready — press Send (or override: "${uploadResult.derived_topic}")`
-                        : 'Auto-topic mode — enter or override the title...')
-                    : 'Enter a topic to generate a publication-ready blog...'
+                        ? `Auto-topic derived: "${uploadResult.derived_topic}". Press Generate or customize below.`
+                        : 'Auto-topic mode: document ready. Enter custom focus or press Generate.')
+                    : 'Enter topic, question, or research focus (e.g., "State persistence and checkpointing in LangGraph")...'
                 }
                 value={topicInput}
                 onChange={e => setTopicInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitJob(); } }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitJob();
+                  }
+                }}
               />
             </div>
 
-            <div className="border-t border-base-800/80 pt-2.5 px-1">
+            {/* Advanced Settings Drawer */}
+            <div className="border-t border-white/6 pt-2">
               <button
                 type="button"
-                onClick={() => setIsGenerationSettingsOpen(open => !open)}
-                aria-expanded={isGenerationSettingsOpen}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-base-400 transition-colors hover:bg-white/5 hover:text-accent-400"
+                onClick={() => setIsGenerationSettingsOpen(prev => !prev)}
+                className="flex items-center gap-2 py-1 text-xs font-semibold text-base-400 hover:text-base-200 transition-colors cursor-pointer"
               >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Generation settings
-                <span className="text-[10px] font-normal text-base-500">{tone} · {sections} sections · {numImages} images</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isGenerationSettingsOpen ? 'rotate-180' : ''}`} />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-accent-400" />
+                <span>Pipeline Parameters</span>
+                <span className="text-[10px] font-normal text-base-500">
+                  ({tone} · {sections} sections · {numImages} figures)
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isGenerationSettingsOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isGenerationSettingsOpen && (
-                <div className="mt-2 grid gap-3 rounded-xl border border-white/6 bg-base-950/35 p-3 sm:grid-cols-2">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-base-400">
-                    Tone
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl bg-base-950/50 border border-white/6">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-base-400 block mb-1">
+                      Writing Tone
+                    </label>
                     <select
                       value={tone}
-                      onChange={(e) => setTone(e.target.value)}
-                      className="mt-1.5 w-full rounded-lg border border-white/10 bg-base-900 px-2.5 py-2 text-xs font-medium text-base-200 focus:border-accent-500/50 focus:outline-none"
+                      onChange={e => setTone(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-base-900 px-2.5 py-1.5 text-xs text-base-200 focus:outline-none focus:border-accent-500/50"
                     >
                       <option value="professional">Professional</option>
+                      <option value="academic">Academic & Grounded</option>
+                      <option value="technical">Technical Deep-Dive</option>
                       <option value="conversational">Conversational</option>
-                      <option value="technical">Technical</option>
-                      <option value="educational">Educational</option>
-                      <option value="persuasive">Persuasive</option>
-                      <option value="inspirational">Inspirational</option>
+                      <option value="persuasive">Persuasive / Opinion</option>
                     </select>
-                  </label>
+                  </div>
 
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-base-400">
-                    Target keywords
-                    <input
-                      value={keywordsInput}
-                      onChange={(e) => setKeywordsInput(e.target.value)}
-                      placeholder="e.g. AI agents, content strategy"
-                      className="mt-1.5 w-full rounded-lg border border-white/10 bg-base-900 px-2.5 py-2 text-xs font-medium normal-case tracking-normal text-base-200 placeholder:text-base-600 focus:border-accent-500/50 focus:outline-none"
-                    />
-                  </label>
-
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-base-400">
-                    <span className="flex justify-between"><span>Body sections</span><span className="text-accent-400">{sections}</span></span>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-base-400 block mb-1">
+                      Body Sections ({sections})
+                    </label>
                     <input
                       type="range"
                       min={2}
                       max={6}
                       value={sections}
-                      onChange={(e) => setSections(Number(e.target.value))}
-                      className="mt-3 w-full cursor-pointer accent-accent-500"
+                      onChange={e => setSections(Number(e.target.value))}
+                      className="w-full mt-2 cursor-pointer accent-indigo-500"
                     />
-                  </label>
+                  </div>
 
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-base-400">
-                    <span className="flex justify-between"><span>AI images</span><span className="text-accent-400">{numImages}</span></span>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-base-400 block mb-1">
+                      AI Figures ({numImages})
+                    </label>
                     <input
                       type="range"
                       min={0}
-                      max={5}
+                      max={4}
                       value={numImages}
-                      onChange={(e) => setNumImages?.(Number(e.target.value))}
-                      className="mt-3 w-full cursor-pointer accent-accent-500"
+                      onChange={e => setNumImages?.(Number(e.target.value))}
+                      className="w-full mt-2 cursor-pointer accent-indigo-500"
                     />
-                  </label>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-base-400 block mb-1">
+                      Target Keywords
+                    </label>
+                    <input
+                      value={keywordsInput}
+                      onChange={e => setKeywordsInput(e.target.value)}
+                      placeholder="e.g. LangGraph, RAG, agents"
+                      className="w-full rounded-lg border border-white/10 bg-base-900 px-2.5 py-1.5 text-xs text-base-200 placeholder:text-base-600 focus:outline-none focus:border-accent-500/50"
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Control Toolbar */}
-            <div className="flex items-center justify-between pt-2.5 px-1">
-              {/* Left Side Tools: Attach Doc + Model Selector */}
+            {/* Bottom Toolbar */}
+            <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadStatus === 'uploading'}
-                  title="Attach a document (PDF, DOCX, TXT, MD)"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                     uploadStatus === 'ready'
-                      ? 'text-accent-400 bg-accent-500/15 border border-accent-500/30'
-                      : 'text-base-300 hover:text-accent-400 bg-base-800/80 hover:bg-base-750 border border-base-700/60 hover:border-accent-500/30'
-                  } ${uploadStatus === 'uploading' ? 'opacity-50 cursor-wait' : ''}`}
+                      ? 'text-accent-400 bg-accent-500/15 border-accent-500/30'
+                      : 'text-base-300 hover:text-base-100 bg-white/4 hover:bg-white/8 border-white/8'
+                  }`}
                 >
                   <Paperclip className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Attach Doc</span>
+                  <span>{uploadStatus === 'ready' ? 'Replace Doc' : 'Attach PDF/Docx'}</span>
                 </button>
 
                 {openSettings && (
                   <button
                     type="button"
                     onClick={openSettings}
-                    title="Change Foundation LLM"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-500/10 hover:bg-accent-500/20 border border-accent-500/25 hover:border-accent-500/50 text-accent-400 text-xs font-mono font-bold transition-all shadow-sm group"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/4 hover:bg-white/8 border border-white/8 text-xs text-base-300 hover:text-base-100 transition-colors cursor-pointer"
                   >
-                    <Cpu className="w-3.5 h-3.5 text-accent-400 group-hover:rotate-12 transition-transform" />
-                    <span>{selectedModel}</span>
-                    <ChevronDown className="w-3 h-3 text-accent-400/70" />
+                    <Cpu className="w-3.5 h-3.5 text-accent-400" />
+                    <span className="font-mono text-[11px] truncate max-w-[120px]">{selectedModel}</span>
                   </button>
                 )}
               </div>
 
-              {/* Right Side Tools: Shortcut Hint + Send Button */}
               <div className="flex items-center gap-3">
-                <span className="hidden md:flex items-center gap-1.5 text-[11px] font-mono text-base-400">
-                  <span>Multi-agent synthesis</span>
-                  <span className="opacity-40">•</span>
-                  <span>Press <kbd className="px-1.5 py-0.5 rounded-md bg-base-800 border border-base-700 text-[10px] text-base-300 font-sans shadow-inner">Enter ↵</kbd></span>
+                <span className="hidden sm:inline text-[11px] text-base-500 font-mono">
+                  Press <kbd className="px-1.5 py-0.5 rounded bg-white/6 border border-white/10 text-base-400 font-sans text-[10px]">Enter ↵</kbd>
                 </span>
 
-                <motion.button
+                <button
+                  type="button"
                   onClick={() => submitJob()}
                   disabled={
                     uploadStatus === 'uploading'
                     || (!topicInput.trim()
                         && !(sourceMode === 'auto_topic' && uploadStatus === 'ready' && !!uploadResult?.derived_topic))
                   }
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-all ${
-                    (uploadStatus === 'uploading'
-                     || (!topicInput.trim()
-                         && !(sourceMode === 'auto_topic' && uploadStatus === 'ready' && !!uploadResult?.derived_topic)))
-                      ? 'bg-base-800 text-base-500 border border-base-700 cursor-not-allowed shadow-none'
-                      : 'bg-gradient-to-r from-accent-500 via-amber-500 to-accent-600 hover:from-accent-400 hover:to-accent-500 text-base-950 shadow-accent-500/25 active:scale-95'
-                  }`}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
+                  className="btn-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span>Generate</span>
+                  <span>Launch Engine</span>
                   <Send className="w-3.5 h-3.5" />
-                </motion.button>
+                </button>
               </div>
             </div>
 

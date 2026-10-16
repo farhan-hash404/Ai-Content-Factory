@@ -4,11 +4,11 @@ import {
   CheckCircle2, Clock, Podcast, Film, Share2, Download,
   FileText, Settings, Image as ImageIcon,
   Play, Volume2, Copy, RefreshCw, LayoutTemplate, Bot, Trash2,
-  GraduationCap, Sparkles, Edit3, Zap, FileCode, Check, Printer, BarChart3, Layers, ExternalLink
+  GraduationCap, Sparkles, Edit3, Zap, FileCode, Check, Printer, BarChart3, Layers, ExternalLink, Coins
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { APIClient, Job, AgentEvent, API_BASE_URL, withApiKey } from './api';
+import { APIClient, Job, AgentEvent, fileUrl } from './api';
 import { TabButton } from './components/TabButton';
 import { EmptyState } from './components/EmptyState';
 import { LoadingState } from './components/LoadingState';
@@ -41,15 +41,16 @@ const generatedFigureHtmlToMarkdown = (content: string) => content.replace(
 const resolveContentImageUrls = (content: string, jobId?: string) => {
   if (!content) return '';
   if (!jobId) return generatedFigureHtmlToMarkdown(content);
-  const baseUrl = API_BASE_URL || `http://${window.location.hostname}:8000`;
-  // withApiKey is a no-op unless VITE_API_KEY is set; <img src> can't send headers.
+  // fileUrl() points at the live /api/files route normally, and at the static
+  // /demo capture in recorded-demo builds — so inline article images resolve
+  // in both. <img src> can't send headers, which fileUrl/withApiKey handles.
   let resolved = content.replace(
     /src=["'](?:\.\/)?(assets\/images\/[^"']+)["']/g,
-    (_m, p1) => `src="${withApiKey(`${baseUrl}/api/files/${jobId}/${p1}`)}"`
+    (_m, p1) => `src="${fileUrl(jobId, p1)}"`
   );
   resolved = resolved.replace(
     /\((?:\.\/)?(assets\/images\/[^\)]+)\)/g,
-    (_m, p1) => `(${withApiKey(`${baseUrl}/api/files/${jobId}/${p1}`)})`
+    (_m, p1) => `(${fileUrl(jobId, p1)})`
   );
   return generatedFigureHtmlToMarkdown(resolved);
 };
@@ -165,7 +166,8 @@ export function ContentView({ navTo, currentJob, refreshJob, events = [], reconn
                         ~{Math.round((currentJob.final_content.split(/\s+/).length || 500) * 28 / 100) * 100} Tokens
                       </span>
                       <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 shadow-sm font-mono">
-                        💰 ~${((currentJob.final_content.split(/\s+/).length || 500) * 0.00008).toFixed(3)} USD
+                        <Coins className="w-3.5 h-3.5" />
+                        ~${((currentJob.final_content.split(/\s+/).length || 500) * 0.00008).toFixed(3)} USD
                       </span>
                     </div>
 
@@ -632,7 +634,7 @@ export function ContentView({ navTo, currentJob, refreshJob, events = [], reconn
             {activeTab === 'images' && (
               <div>
                 {isTaskRunning('images') ? (
-                  <LoadingState title="Generating Images..." description={`Our AI is crafting custom visuals for your blog post using the ${currentJob?.image_model || 'DALL-E 3'} model.`} agentEvents={getCurrentRunEvents('images')} />
+                  <LoadingState title="Generating Images..." description={`Our AI is crafting custom visuals for your blog post using the ${currentJob?.image_model || 'Pollinations'} model.`} agentEvents={getCurrentRunEvents('images')} />
                 ) : currentJob?.image_files && currentJob.image_files.length > 0 ? (
                   <div className="space-y-6">
                     <div className="glass-panel p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-white/6 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
@@ -708,7 +710,7 @@ export function ContentView({ navTo, currentJob, refreshJob, events = [], reconn
                   <EmptyState
                     icon={<ImageIcon className="w-12 h-12" />}
                     title="Generate Blog Images"
-                    description={`Create custom AI-generated visuals for your blog post using state-of-the-art ${currentJob?.image_model || 'DALL-E 3'} rendering.`}
+                    description={`Create custom AI-generated visuals for your blog post using state-of-the-art ${currentJob?.image_model || 'Pollinations'} rendering.`}
                     onGenerate={() => handleTrigger('images')}
                     error={getLastTaskError('images')}
                   />

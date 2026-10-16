@@ -52,11 +52,29 @@ class TestJudgeIsConfiguredIndependently:
             "moves the QA auditor and the revision agent"
         )
 
-    def test_judge_defaults_to_the_quality_model(self):
-        """Unset LLM_JUDGE_MODEL must change nothing — this is opt-in."""
+    def test_judge_defaults_to_the_quality_model(self, monkeypatch):
+        """Unset LLM_JUDGE_MODEL must change nothing — this is opt-in.
+
+        The variable is deliberately SET in this project's .env (a free-tier run
+        gives the judge its own model so it gets its own 5/min quota, and an
+        independent judge is better methodology anyway). So the default cannot
+        be read from the ambient environment — it has to be re-derived with the
+        variable removed, which is what the reload below does.
+        """
+        import dotenv
+        import importlib
         from Graph.agents import utils
 
-        assert utils._JUDGE_MODEL == utils._QUALITY_MODEL
+        monkeypatch.delenv("LLM_JUDGE_MODEL", raising=False)
+        # utils.py calls load_dotenv() at import, which would put the variable
+        # straight back from .env and make deleting it pointless.
+        monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: False)
+        reloaded = importlib.reload(utils)
+        try:
+            assert reloaded._JUDGE_MODEL == reloaded._QUALITY_MODEL
+        finally:
+            monkeypatch.undo()
+            importlib.reload(utils)  # restore the shared module for other tests
 
     def test_judge_requests_deterministic_sampling(self):
         """temperature=0 where the model honours it, None where it does not.
@@ -107,9 +125,38 @@ class TestJudgeIsConfiguredIndependently:
         from Graph.agents import evaluation
 
         src = inspect.getsource(evaluation.deepeval_evaluation_node)
-        assert src.count("model=_JUDGE_MODEL") == 4, (
+        assert src.count("model=judge") == 4, (
             "all four deepeval rubrics must pin the judge model"
         )
+        assert "_build_deepeval_judge()" in src, (
+            "the judge must come from _build_deepeval_judge, which is what ties "
+            "it to LLM_JUDGE_MODEL and to the configured endpoint"
+        )
+
+    def test_deepeval_judge_is_pinned_to_the_configured_judge_model(self):
+        """The adapter must carry LLM_JUDGE_MODEL, not deepeval's own default.
+
+        A bare model-id STRING is not enough on a non-OpenAI endpoint: deepeval
+        resolves unknown names through its native OpenAI client, so a Gemini id
+        becomes an unauthenticated OpenAI request and every rubric errors while
+        the in-house G-Eval beside it succeeds.
+        """
+        from Graph.agents.evaluation import _build_deepeval_judge, _JUDGE_MODEL
+        from Graph.agents.utils import _BASE_URL
+
+        judge = _build_deepeval_judge()
+
+        if not _BASE_URL:
+            # OpenAI endpoint: deepeval's native client is correct here, and it
+            # also gives per-metric cost accounting, which an adapter cannot.
+            assert judge == _JUDGE_MODEL
+            return
+
+        assert not isinstance(judge, str), (
+            "on a non-OpenAI endpoint the judge must be a DeepEvalBaseLLM "
+            "adapter, not a model-id string deepeval will send to OpenAI"
+        )
+        assert judge.get_model_name() == _JUDGE_MODEL
 
 
 class TestTemperatureIsInertOnReasoningModels:

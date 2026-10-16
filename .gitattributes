@@ -1,0 +1,14 @@
+# Scripts and container files execute on Linux (Codespaces, Docker, CI).
+# Force LF so a CRLF checkout on Windows can't break the shebang / parsing.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+Dockerfile.*    text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+
+# Treat demo media as binary (no EOL munging, no diff noise).
+*.mp4 binary
+*.mp3 binary
+*.png binary
+*.pdf binary
+*.docx binary

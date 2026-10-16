@@ -1,7 +1,11 @@
 """
 Tests for Graph/agents/utils.py — shared utility helpers.
 """
+from unittest.mock import patch
+
 import pytest
+from langchain_openai import ChatOpenAI
+
 from Graph.agents.utils import _safe_slug
 
 
@@ -201,3 +205,171 @@ class TestUsageAccounting:
 
         monkeypatch.setenv("LLM_PRICE_GPT_5_MINI", "1.00,4.00")
         assert usage._price_for("gpt-5-mini") == (1.00, 4.00)
+
+
+class TestFreeTierQuotaHandling:
+    """The free tier caps requests per minute AND per day, both per model.
+
+    These two limits broke the pipeline in different ways and needed different
+    fixes, so they are pinned separately:
+
+      * Per MINUTE (5): the orchestrator writes sections concurrently, so an
+        unthrottled 7-section outline fired 7 requests at once and everything
+        past the fifth returned 429. Fixed by admission control — a blocking
+        token bucket per model.
+      * Per DAY (20): one complete run makes over thirty calls, so waiting
+        cannot help. Fixed by failing the request over to another model, since
+        the cap is per model and the endpoint serves many.
+    """
+
+    @pytest.fixture
+    def throttled(self, monkeypatch):
+        """Force throttling on, whatever the ambient .env says.
+
+        Skipping when `LLM_REQUESTS_PER_MINUTE` is 0 would mean CI — which has
+        no .env and therefore no throttling — never exercises the limiter at
+        all, which is exactly where a regression would go unnoticed.
+        """
+        from Graph.agents import utils
+
+        monkeypatch.setattr(utils, "_REQUESTS_PER_MINUTE", 5.0)
+        monkeypatch.setattr(utils, "_RATE_LIMIT_BURST", 1.0)
+        monkeypatch.setattr(utils, "_rate_limiters", {})
+        return utils
+
+    def test_rate_limiter_is_shared_per_model_not_per_client(self, throttled):
+        """The API enforces one quota per model, so one bucket must serve all
+        clients built for that model — otherwise N clients get N times the
+        allowance and the cap is not respected."""
+        a = throttled.make_chat_llm("gemini-3.6-flash")
+        b = throttled.make_chat_llm("gemini-3.6-flash", temperature=0.7)
+        c = throttled.make_chat_llm("gemini-3.5-flash-lite")
+
+        assert a.rate_limiter is b.rate_limiter, "same model must share a bucket"
+        assert a.rate_limiter is not c.rate_limiter, (
+            "different models have independent quotas; sharing one bucket "
+            "would throttle to half the available throughput"
+        )
+
+    def test_rate_limit_spacing_matches_the_quota(self, throttled):
+        limiter = throttled._rate_limiter_for("gemini-3.6-flash")
+        assert limiter.requests_per_second == pytest.approx(5.0 / 60.0)
+        # A burst of 5 followed by one more request 12 seconds later is still 6
+        # inside the same rolling minute — i.e. a 429. Only even spacing is safe.
+        assert limiter.max_bucket_size <= 1, (
+            "a burst larger than 1 can exceed a rolling-window quota"
+        )
+
+    def test_throttling_can_be_turned_off_for_a_paid_tier(self, monkeypatch):
+        """On a paid tier the limiter is pure latency, so it must be disableable."""
+        from Graph.agents import utils
+
+        monkeypatch.setattr(utils, "_REQUESTS_PER_MINUTE", 0.0)
+        monkeypatch.setattr(utils, "_rate_limiters", {})
+        assert utils._rate_limiter_for("gemini-3.6-flash") is None
+        assert utils.make_chat_llm("gemini-3.6-flash").rate_limiter is None
+
+    def test_daily_quota_error_is_distinguished_from_the_per_minute_one(self):
+        """Only the per-day error should retire a model for the process.
+
+        A per-minute 429 clears on its own; blacklisting on one would throw away
+        a model for the rest of the run over a few seconds of contention.
+        """
+        from Graph.agents import utils
+
+        per_day = Exception(
+            "Error code: 429 - RESOURCE_EXHAUSTED 'quotaId': "
+            "'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaValue': '20'"
+        )
+        per_minute = Exception(
+            "Error code: 429 - RESOURCE_EXHAUSTED 'quotaId': "
+            "'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaValue': '5'"
+        )
+        overloaded = Exception("Error code: 503 - This model is currently experiencing high demand")
+        bad_request = Exception("Error code: 400 - invalid argument: unknown field 'foo'")
+
+        assert utils._is_daily_quota_error(per_day)
+        assert not utils._is_daily_quota_error(per_minute)
+
+        # All three capacity problems are worth trying on another model.
+        for err in (per_day, per_minute, overloaded):
+            assert utils._is_capacity_error(err)
+        # A malformed request is not; retrying it elsewhere only hides the bug.
+        assert not utils._is_capacity_error(bad_request)
+
+    def test_exhausted_models_are_dropped_from_the_candidate_list(self):
+        """Once a model is spent, sending it anything is a wasted round-trip."""
+        from Graph.agents import utils
+
+        client = utils.FailoverChatOpenAI(
+            model="model-a",
+            api_key="test",
+            fallback_models=["model-b", "model-c"],
+        )
+        assert client._candidates("model-a") == ["model-a", "model-b", "model-c"]
+
+        with utils._exhausted_lock:
+            utils._exhausted_models.add("model-a")
+        try:
+            assert client._candidates("model-a") == ["model-b", "model-c"]
+        finally:
+            with utils._exhausted_lock:
+                utils._exhausted_models.discard("model-a")
+
+    def test_all_models_spent_still_reaches_the_api(self):
+        """With nothing left, the caller must get the API's own quota error.
+
+        Returning an empty candidate list would instead raise an unrelated
+        error from inside the failover code, hiding the real cause.
+        """
+        from Graph.agents import utils
+
+        client = utils.FailoverChatOpenAI(
+            model="model-a", api_key="test", fallback_models=["model-b"]
+        )
+        with utils._exhausted_lock:
+            utils._exhausted_models.update({"model-a", "model-b"})
+        try:
+            assert client._candidates("model-a") == ["model-a"]
+        finally:
+            with utils._exhausted_lock:
+                utils._exhausted_models.difference_update({"model-a", "model-b"})
+
+    def test_failover_overrides_the_model_per_call_not_on_the_client(self):
+        """Section writers share one client across threads.
+
+        Rotating `self.model_name` to fail over would leak one request's
+        substitution into every concurrent request. The override has to travel
+        in the per-call payload, which works because `_get_request_payload`
+        merges kwargs over the client's defaults.
+        """
+        import inspect
+        from Graph.agents import utils
+
+        src = inspect.getsource(utils.FailoverChatOpenAI._generate)
+        assert '"model": model' in src, "the retry must pass the model per call"
+        assert "self.model_name =" not in src, (
+            "mutating the shared client is not thread-safe"
+        )
+
+    def test_a_non_capacity_error_is_not_retried_elsewhere(self):
+        from Graph.agents import utils
+
+        calls = []
+
+        class Boom(utils.FailoverChatOpenAI):
+            def _call_super(self, **kwargs):
+                calls.append(kwargs["model"])
+                raise ValueError("schema is wrong")
+
+        client = Boom(model="model-a", api_key="test", fallback_models=["model-b"])
+        # Patch the inherited implementation the override delegates to.
+        with patch.object(
+            ChatOpenAI, "_generate", side_effect=lambda *a, **k: client._call_super(**k)
+        ):
+            with pytest.raises(ValueError, match="schema is wrong"):
+                client._generate([])
+
+        assert calls == ["model-a"], (
+            "a malformed request must fail immediately, not burn the whole pool"
+        )

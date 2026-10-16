@@ -75,8 +75,17 @@ _mock_module(
     "moviepy.audio.io",
 )
 
-# PIL / Pillow (used by video.py)
-_mock_module("PIL", "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont")
+# PIL / Pillow (used by video.py and by multimedia.py's offline figure renderer).
+#
+# Mocked ONLY if it is genuinely absent. Pillow is a hard requirement in
+# requirements.txt, not an optional extra, and the image chain's last link
+# renders a real PNG with it — a behaviour that cannot be tested against a
+# MagicMock. Unconditional mocking also made that test order-dependent: it
+# passed whenever some earlier module happened to import PIL first.
+try:
+    import PIL  # noqa: F401
+except ImportError:
+    _mock_module("PIL", "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont")
 
 # BeautifulSoup (used by research.py) — may or may not be installed
 try:

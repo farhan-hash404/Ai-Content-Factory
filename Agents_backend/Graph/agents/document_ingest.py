@@ -377,28 +377,62 @@ def split_into_sentences(text: str) -> List[str]:
 
 
 def get_embeddings_model():
-    """Dynamically initializes the OpenAI Embeddings model to avoid startup errors if key is missing.
+    """Dynamically initializes the embeddings model to avoid startup errors if key is missing.
 
     Bounded by the same timeout as the chat clients. Semantic chunking embeds
     every sentence of an upload in one batched call, so this is the largest
     single request the system makes — exactly the one that must not inherit the
     SDK's 600-second default and stall an upload indefinitely.
+
+    The endpoint is whatever agents/utils.py resolved for the chat clients, so
+    the embeddings follow the chat provider: Google's OpenAI compatibility
+    surface serves /embeddings as well, and `OpenAIEmbeddings` is an
+    OpenAI-protocol client, not an OpenAI-only one.
+
+    DIMENSIONS are pinned rather than left to the model default. A Chroma
+    collection fixes its vector width on first write, so an index built at
+    1536 (text-embedding-3-small) cannot accept 3072-wide vectors from
+    gemini-embedding-001 — the upsert fails with a dimension mismatch and the
+    upload silently loses its RAG index. Both models support truncated output,
+    so requesting 1536 keeps an existing index readable across a provider
+    switch. Override with EMBEDDING_DIMENSIONS only for a fresh index.
     """
     from langchain_openai import OpenAIEmbeddings
-    from .utils import _REQUEST_TIMEOUT, _MAX_RETRIES
+    from .utils import (
+        _REQUEST_TIMEOUT, _MAX_RETRIES, _BASE_URL, _API_KEY,
+        _IS_GOOGLE_ENDPOINT,
+    )
+
+    default_model = (
+        "gemini-embedding-001" if _IS_GOOGLE_ENDPOINT else "text-embedding-3-small"
+    )
+    model = os.getenv("EMBEDDING_MODEL", default_model)
+    dimensions = int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
 
     # NOT metered by usage.py. OpenAIEmbeddings does not accept `callbacks`:
     # passing it does not raise, it silently moves the value into
     # `model_kwargs`, which is then sent to the API as a request parameter.
-    # Embedding spend is therefore excluded from the reported cost. At
-    # $0.02/1M tokens, a 200-page upload contributes well under a cent against
-    # a run costing tens of cents, so the totals are a close lower bound —
-    # but say "chat completions" rather than "all API calls" when reporting.
-    return OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        timeout=_REQUEST_TIMEOUT,
-        max_retries=_MAX_RETRIES,
-    )
+    # Embedding spend is therefore excluded from the reported cost. On the
+    # Gemini free tier that spend is zero; on OpenAI's $0.02/1M a 200-page
+    # upload contributes well under a cent against a run costing tens of
+    # cents. Either way the totals are a close lower bound — but say "chat
+    # completions" rather than "all API calls" when reporting.
+    kwargs = {
+        "model": model,
+        "dimensions": dimensions,
+        "timeout": _REQUEST_TIMEOUT,
+        "max_retries": _MAX_RETRIES,
+        "api_key": _API_KEY,
+    }
+    if _BASE_URL:
+        kwargs["base_url"] = _BASE_URL
+        # langchain-openai's tokeniser-based batching assumes OpenAI's
+        # tiktoken vocabulary and its 2048-input batch ceiling. Google caps a
+        # single embed request at 100 inputs, so the default batching
+        # overflows on any real document.
+        kwargs["check_embedding_ctx_length"] = False
+        kwargs["chunk_size"] = int(os.getenv("EMBEDDING_BATCH_SIZE", "100"))
+    return OpenAIEmbeddings(**kwargs)
 
 
 def semantic_chunking(

@@ -53,11 +53,11 @@ export function useJobAnalytics(
 
     const nodes: AnalyticsNode[] = [
       {
-        id: 'topic_guard', name: 'Topic Guard', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'topic_guard', name: 'Topic Guard', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Sanitizes input topic, checks prompt safety & sanity', cost: topicGuardMetrics.cost, tokens: topicGuardMetrics.tokens, status: 'Passed', active: true,
       },
       {
-        id: 'router', name: 'Router Agent', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'router', name: 'Router Agent', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Determines web search requirement vs closed-book route', cost: routerMetrics.cost, tokens: routerMetrics.tokens, status: 'Passed', active: true,
       },
       {
@@ -69,7 +69,7 @@ export function useJobAnalytics(
         role: 'Semantic sentence chunking & NumPy cosine top-k search', cost: docIngestMetrics.cost, tokens: docIngestMetrics.tokens, status: hasRag ? 'Passed' : 'Skipped', active: hasRag,
       },
       {
-        id: 'orchestrator', name: 'Orchestrator Agent', color: 'bg-amber-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'orchestrator', name: 'Orchestrator Agent', color: 'bg-amber-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Builds H2 outline structure & assigns evidence to sections', cost: orchestratorMetrics.cost, tokens: orchestratorMetrics.tokens, status: 'Passed', active: true,
       },
       {
@@ -77,24 +77,24 @@ export function useJobAnalytics(
         role: 'Human-in-the-loop interrupt checkpoint & plan editing', cost: 0, tokens: 0, status: currentJob.status === 'awaiting_approval' ? 'Pending' : 'Approved', active: true,
       },
       {
-        id: 'workers', name: `Parallel Workers (x${numSections})`, color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'workers', name: `Parallel Workers (x${numSections})`, color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'LangGraph Send API parallel section writing', cost: workersMetrics.cost, tokens: workersMetrics.tokens, status: hasContent ? 'Passed' : 'Pending', active: hasContent,
       },
       {
-        id: 'reducer', name: 'Reducer & Merger', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'reducer', name: 'Reducer & Merger', color: 'bg-emerald-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Combines parallel sections into single markdown article', cost: reducerMetrics.cost, tokens: reducerMetrics.tokens, status: hasContent ? 'Passed' : 'Pending', active: hasContent,
       },
       {
-        id: 'image_gen', name: 'AI Image Generator', color: 'bg-cyan-400', textColor: 'text-cyan-400', model: currentJob.image_model || 'DALL-E 3',
+        id: 'image_gen', name: 'AI Image Generator', color: 'bg-cyan-400', textColor: 'text-cyan-400', model: currentJob.image_model || 'Pollinations',
         role: 'Visual prompt generation & multi-aspect blog illustration rendering', cost: imageGenMetrics.cost, tokens: imageGenMetrics.tokens,
         status: isTaskRunning('images') ? 'Running' : hasImages ? `Passed (${imageCount} img${imageCount > 1 ? 's' : ''})` : 'Skipped', active: hasImages || isTaskRunning('images'),
       },
       {
-        id: 'qa', name: 'Quality Control Auditor', color: 'bg-red-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'qa', name: 'Quality Control Auditor', color: 'bg-red-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Fact-checking against evidence & revision looping', cost: qaMetrics.cost, tokens: qaMetrics.tokens, status: hasContent ? 'Passed' : 'Pending', active: hasContent,
       },
       {
-        id: 'seo', name: 'SEO Keyword Optimizer', color: 'bg-teal-400', textColor: 'text-accent-400', model: 'gpt-5-mini',
+        id: 'seo', name: 'SEO Keyword Optimizer', color: 'bg-teal-400', textColor: 'text-accent-400', model: 'gemini-3.1-flash-lite',
         role: 'Weaves target keywords into headers & body paragraphs', cost: seoMetrics.cost, tokens: seoMetrics.tokens, status: hasContent ? 'Passed' : 'Pending', active: hasContent,
       },
       {

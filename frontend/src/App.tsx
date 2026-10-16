@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react';
-import { APIClient, WebSocketClient, Job, AgentEvent, CreateJobParams } from './api';
+import { APIClient, WebSocketClient, Job, AgentEvent, CreateJobParams, DEMO_MODE } from './api';
 import { ViewState } from './types';
 import { Sidebar } from './components/Sidebar';
 import { TopNav } from './components/TopNav';
@@ -24,8 +24,8 @@ export default function App() {
   const [sections, setSections]       = useState<number>(3);
   const [numImages, setNumImages]     = useState<number>(2);
   const [keywordsInput, setKeywordsInput] = useState<string>('');
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-5-mini');
-  const [imageModel, setImageModel]   = useState<string>('dall-e-3');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
+  const [imageModel, setImageModel]   = useState<string>('pollinations-flux');
   const [imageSize, setImageSize]     = useState<string>('1024x1024');
   const [imageQuality, setImageQuality] = useState<string>('standard');
   const [imageStyle, setImageStyle]   = useState<string>('vivid');
@@ -57,9 +57,18 @@ export default function App() {
     }
   };
 
-  // Poll jobs every 15s and clean up the websocket on unmount.
+  // Poll jobs every 15s and clean up the websocket on unmount. In recorded-demo
+  // mode the data is static, so there is nothing to poll — fetch once, open the
+  // captured job automatically so the page lands on the finished output.
   useEffect(() => {
-    fetchJobsList();
+    fetchJobsList().then(() => {
+      if (DEMO_MODE) {
+        APIClient.fetchJobs()
+          .then(list => { if (list[0]) loadJob(list[0].id); })
+          .catch(console.error);
+      }
+    });
+    if (DEMO_MODE) return () => wsClientRef.current.disconnect();
     const interval = setInterval(fetchJobsList, 15000);
     return () => {
       clearInterval(interval);
@@ -236,6 +245,19 @@ export default function App() {
 
   return (
     <div className="min-h-dvh flex overflow-hidden antialiased relative noise-bg ambient-bg">
+      {DEMO_MODE && (
+        <a
+          href="https://github.com/farhan-hash404/Ai-Content-Factory"
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/15 px-4 py-1.5 text-[11px] font-medium text-amber-200 backdrop-blur-md shadow-lg hover:bg-amber-500/25 transition-colors"
+          title="This is a static replay of a real generation run. The live multi-agent backend runs locally or in GitHub Codespaces."
+        >
+          <span aria-hidden>🎬</span>
+          Recorded demo — outputs are from a real run; the live backend is offline.
+          <span className="underline">Run it →</span>
+        </a>
+      )}
       <Sidebar
         view={view}
         navTo={navTo}
@@ -249,7 +271,12 @@ export default function App() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
       <div className="flex-1 md:ml-[260px] flex flex-col h-dvh relative">
-        <TopNav view={view} onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)} />
+        <TopNav
+          view={view}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+          openSettings={() => setIsSettingsOpen(true)}
+          selectedModel={selectedModel}
+        />
         {view === 'graph' && (
           <div className="flex-1 p-3 md:p-4 overflow-hidden flex flex-col min-h-0">
             <Suspense fallback={<ViewLoadingLabel label="Loading agent graph…" />}>
@@ -335,35 +362,61 @@ export default function App() {
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="w-full bg-base-900 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-base-100 focus:outline-none focus:border-accent-500/40 transition-colors"
                 >
-                  {/* OpenAI only: the agent layer builds a ChatOpenAI client
-                      (Graph/agents/utils.py → get_llm), so a Claude or Gemini
-                      model id here would be sent to the OpenAI API and fail.
-                      Gemini is still used for podcast/TTS audio, which is wired
-                      separately and not affected by this selector. */}
-                  <optgroup label="OpenAI Models" className="bg-base-900 text-base-100">
-                    <option value="gpt-5-mini">GPT-5 Mini (Default - Fast & High Quality)</option>
-                    <option value="gpt-4o-mini">GPT-4o-mini (Fast & Cheap)</option>
+                  {/* The model id must belong to the endpoint the SERVER is
+                      configured for — Graph/agents/utils.py resolves one
+                      base_url for the whole process, and get_llm() rejects an
+                      id the endpoint does not serve, falling back to
+                      LLM_QUALITY_MODEL. With LLM_BASE_URL pointed at Google
+                      (the free-tier default) pick a Gemini model; with it
+                      unset, pick an OpenAI one. */}
+                  <optgroup label="Google Gemini — free tier" className="bg-base-900 text-base-100">
+                    {/* 3.8/3.7-flash are newest but heavily contended on the
+                        free tier — roughly half of a probe's calls came back
+                        503. They are offered, not defaulted. */}
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Default - Free, Most Quota)</option>
+                    <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite (Free, Fast)</option>
+                    <option value="gemini-3.6-flash">Gemini 3.6 Flash (Better Prose, Small Daily Quota)</option>
+                    <option value="gemini-3.8-flash">Gemini 3.8 Flash (Newest - Free, Often Busy)</option>
+                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Highest Quality, Tight Rate Limit)</option>
+                  </optgroup>
+                  <optgroup label="OpenAI — requires OpenAI credit" className="bg-base-900 text-base-100">
+                    <option value="gpt-5-mini">GPT-5 Mini (Fast &amp; High Quality)</option>
+                    <option value="gpt-4o-mini">GPT-4o-mini (Fast &amp; Cheap)</option>
                     <option value="gpt-4o">GPT-4o (Premium Quality)</option>
                   </optgroup>
                 </select>
                 <p className="text-[11px] text-base-500 mt-1.5 leading-relaxed">
                   Sets the model used by the parallel section writers. Planning, QA, and
                   evaluation use the server-configured default (<code className="text-base-400">LLM_QUALITY_MODEL</code>).
+                  Pick a model from the family the server's <code className="text-base-400">LLM_BASE_URL</code> points at —
+                  anything else falls back to that default.
                 </p>
               </div>
 
-              {/* OpenAI Image Generation Settings */}
+              {/* Image Generation Settings */}
               <div className="pt-3 border-t border-white/10 space-y-3">
                 <div>
-                  <label className="text-[10px] font-bold text-base-400 uppercase tracking-wider mb-1.5 block">OpenAI Image Model</label>
+                  <label className="text-[10px] font-bold text-base-400 uppercase tracking-wider mb-1.5 block">Image Model</label>
                   <select
                     value={imageModel}
                     onChange={(e) => setImageModel(e.target.value)}
                     className="w-full bg-base-900 border border-white/8 rounded-xl px-3 py-2 text-sm text-base-100 focus:outline-none focus:border-accent-500/40 transition-colors"
                   >
-                    <option value="dall-e-3">DALL-E 3 (Premium Quality - HD / Vivid)</option>
-                    <option value="dall-e-2">DALL-E 2 (Standard Quality)</option>
+                    {/* This picks where the provider chain STARTS, not the only
+                        provider used — see _generate_image_multi_provider. Any
+                        choice still falls through to Pollinations rather than
+                        losing the run's illustrations. Pollinations is also the
+                        only genuinely free option: Gemini's image models return
+                        429 on the free tier, and DALL-E needs OpenAI credit. */}
+                    <option value="pollinations-flux">Pollinations (Default - Free, No Key)</option>
+                    <option value="gemini-3.1-flash-image">Gemini 3.1 Flash Image (Gemini key)</option>
+                    <option value="dall-e-3">DALL-E 3 (OpenAI credit - HD / Vivid)</option>
+                    <option value="dall-e-2">DALL-E 2 (OpenAI credit)</option>
                   </select>
+                  <p className="text-[11px] text-base-500 mt-1.5 leading-relaxed">
+                    Size, quality and style below apply to DALL-E 3 only. Pollinations
+                    renders at a fixed 1024&times;600.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">

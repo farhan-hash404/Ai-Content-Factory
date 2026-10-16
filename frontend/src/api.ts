@@ -14,6 +14,43 @@ export const withApiKey = (url: string): string =>
 const apiFetch = (url: string, init: RequestInit = {}): Promise<Response> =>
   fetch(url, API_KEY ? { ...init, headers: { ...init.headers, 'X-API-Key': API_KEY } } : init);
 
+// ---------------------------------------------------------------------------
+// RECORDED-DEMO MODE
+// ---------------------------------------------------------------------------
+// This project is a heavy, always-on backend (LangGraph + ffmpeg + Whisper,
+// multi-minute jobs) that cannot run on a free static/serverless host. For the
+// public portfolio link we ship a STATIC replay of one real run instead: the
+// Vite build is produced with VITE_DEMO_MODE=1, and every read goes to static
+// fixtures under /demo/ captured from an actual completed job, so the frontend
+// needs no server, never sleeps, and costs nothing. Write actions (create a
+// new job, trigger media, etc.) are disabled with a clear message — the real
+// system runs locally or in GitHub Codespaces.
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === '1';
+const DEMO_BASE = `${import.meta.env.BASE_URL || '/'}demo/`;
+
+const demoDisabled = (): never => {
+  throw new Error(
+    'This is a recorded demo — the backend is offline, so this action is ' +
+    'disabled. Clone the repo and run it locally, or open it in GitHub ' +
+    'Codespaces, to generate new content.'
+  );
+};
+
+const demoJson = async (name: string): Promise<any> => {
+  const res = await fetch(`${DEMO_BASE}${name}`);
+  if (!res.ok) throw new Error(`Demo fixture missing: ${name}`);
+  return res.json();
+};
+
+/** Resolve a job asset URL. In demo mode this points at the static capture
+ *  under /demo/files/<jobId>/<path>; stored paths use Windows separators, so
+ *  normalise them. Shared by APIClient.getFileUrl and the article renderer so
+ *  both stay in step. */
+export const fileUrl = (jobId: string, filename: string): string =>
+  DEMO_MODE
+    ? `${DEMO_BASE}files/${jobId}/${filename.replace(/\\/g, '/')}`
+    : withApiKey(`${API_BASE_URL}/api/files/${jobId}/${filename}`);
+
 export type SourceMode = 'closed_book' | 'hybrid' | 'auto_topic';
 
 
@@ -58,6 +95,7 @@ export interface Job {
   topic: string;
   tone: string;
   sections: number;
+  keywords?: string[];
   status: 'pending' | 'running' | 'awaiting_approval' | 'completed' | 'failed';
   created_at: string;
   completed_at?: string;
@@ -109,12 +147,14 @@ export interface AgentEvent {
 
 export class APIClient {
   static async fetchJobs(): Promise<Job[]> {
+    if (DEMO_MODE) return demoJson('jobs.json');
     const res = await apiFetch(`${API_BASE_URL}/api/jobs`);
     if (!res.ok) throw new Error('Failed to fetch jobs');
     return res.json();
   }
 
   static async uploadDocument(file: File): Promise<UploadResult> {
+    if (DEMO_MODE) return demoDisabled();
     const form = new FormData();
     form.append('file', file);
     const res = await apiFetch(`${API_BASE_URL}/api/uploads`, {
@@ -133,6 +173,7 @@ export class APIClient {
   }
 
   static async createJob(params: CreateJobParams): Promise<Job> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -156,6 +197,7 @@ export class APIClient {
   }
 
   static async getJob(id: string): Promise<Job> {
+    if (DEMO_MODE) return demoJson('job.json');
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}`);
     if (!res.ok) throw new Error('Failed to get job');
     return res.json();
@@ -163,6 +205,7 @@ export class APIClient {
 
   static async getJobEvents(id: string): Promise<AgentEvent[]> {
     try {
+      if (DEMO_MODE) return (await demoJson('events.json')).events || [];
       const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/events`);
       if (!res.ok) return [];
       const data = await res.json();
@@ -173,6 +216,7 @@ export class APIClient {
   }
 
   static async deleteJob(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}`, {
       method: 'DELETE',
     });
@@ -180,11 +224,13 @@ export class APIClient {
   }
 
   static async approvePlan(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/approve-plan`);
     if (!res.ok) throw new Error('Failed to approve plan');
   }
 
   static async revisePlan(id: string, feedback: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/revise-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -199,6 +245,7 @@ export class APIClient {
     audience: string;
     tasks: Array<{ title: string; goal: string; bullets: string[]; target_words: number; tags: string[] }>;
   }): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/update-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -208,45 +255,53 @@ export class APIClient {
   }
 
   static async triggerImages(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/generate-images`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger images');
   }
 
   static async triggerVideo(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/generate-video`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger video');
   }
 
   static async triggerPodcast(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/generate-podcast`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger podcast');
   }
 
   static async triggerSocial(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/generate-social`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger social');
   }
 
   static async triggerQA(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/run-qa`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger QA');
   }
 
   static async runDeepEval(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/run-deepeval`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to trigger deepeval academic audit');
   }
 
   static async resumeJob(id: string): Promise<void> {
+    if (DEMO_MODE) return demoDisabled();
     const res = await apiFetch(`${API_BASE_URL}/api/jobs/${id}/resume`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to resume job');
   }
 
   static getFileUrl(jobId: string, filename: string): string {
-    return withApiKey(`${API_BASE_URL}/api/files/${jobId}/${filename}`);
+    return fileUrl(jobId, filename);
   }
 
   static getExportUrl(jobId: string, format: 'pdf' | 'docx' | 'html'): string {
+    if (DEMO_MODE) return `${DEMO_BASE}files/${jobId}/export.${format}`;
     return withApiKey(`${API_BASE_URL}/api/jobs/${jobId}/export/${format}`);
   }
 }
@@ -259,6 +314,9 @@ export class WebSocketClient {
   private reconnectTimer: any = null;
 
   connect(jobId: string, onMessage: (event: AgentEvent) => void, onDisconnect?: () => void) {
+    // Recorded demo: there is no live job and no server, so the socket is a
+    // no-op. All historical events come from the static fixture via getJobEvents.
+    if (DEMO_MODE) return;
     // If a socket is already open or opening, mark it as intentionally closed before closing
     if (this.ws) {
       this.ws.isClosedByClient = true;

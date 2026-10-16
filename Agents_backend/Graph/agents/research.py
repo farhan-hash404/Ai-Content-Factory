@@ -104,7 +104,7 @@ def _tavily_search(query: str, max_results: int = 5, recency_days: int = _DEFAUL
         routing.py  →  state["recency_days"]  →  research_node  →  here
     """
     if not os.getenv("TAVILY_API_KEY"):
-        logger.warning("TAVILY_API_KEY missing. Skipping search.")
+        logger.info("TAVILY_API_KEY not set — skipping Tavily.")
         return []
     try:
         tool = TavilySearchResults(max_results=max_results, days=recency_days)
@@ -120,8 +120,81 @@ def _tavily_search(query: str, max_results: int = 5, recency_days: int = _DEFAUL
             })
         return out
     except Exception as e:
-        logger.warning(f"Search failed for '{query}': {e}")
+        logger.warning(f"Tavily search failed for '{query}': {e}")
         return []
+
+
+def _duckduckgo_search(query: str, max_results: int = 5,
+                       recency_days: int = _DEFAULT_RECENCY_DAYS) -> List[dict]:
+    """Keyless web search, used when Tavily is unavailable or returns nothing.
+
+    WHY THIS EXISTS: Tavily is the only search provider the pipeline had, and a
+    missing or exhausted key turned every open_book run into a closed_book one
+    — the post still shipped, but with zero citations. DuckDuckGo needs no
+    credential, so grounding degrades instead of disappearing.
+
+    Two real differences from Tavily, both of which the caller must live with:
+      * Snippets are short (~200 characters) rather than extracted article
+        bodies, so `scrape_full_webpage_fallback` does more of the work.
+      * Recency is expressed as a coarse bucket (day/week/month/year), not an
+        exact day count, so the window is the tightest bucket that still
+        contains `recency_days`.
+    """
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        logger.warning("ddgs not installed — no keyless search fallback available.")
+        return []
+
+    # DuckDuckGo exposes fixed time buckets. Round UP to the nearest bucket
+    # that contains the requested window: a narrower bucket would silently
+    # discard sources the router considered in scope.
+    if recency_days <= 1:
+        timelimit = "d"
+    elif recency_days <= 7:
+        timelimit = "w"
+    elif recency_days <= 31:
+        timelimit = "m"
+    elif recency_days <= 366:
+        timelimit = "y"
+    else:
+        timelimit = None  # no filter — the router asked for everything
+
+    try:
+        with DDGS() as ddgs:
+            results = ddgs.text(query, max_results=max_results, timelimit=timelimit)
+        out: List[dict] = []
+        for r in results or []:
+            url = r.get("href") or r.get("url") or ""
+            out.append({
+                "title":        r.get("title", ""),
+                "url":          url,
+                "snippet":      r.get("body") or r.get("snippet", ""),
+                "published_at": None,   # DuckDuckGo does not return a date
+                "source":       "duckduckgo",
+            })
+        return out
+    except Exception as e:
+        logger.warning(f"DuckDuckGo search failed for '{query}': {e}")
+        return []
+
+
+def _web_search(query: str, max_results: int = 5,
+                recency_days: int = _DEFAULT_RECENCY_DAYS) -> List[dict]:
+    """Search the web, preferring Tavily and falling back to DuckDuckGo.
+
+    Tavily first because its results carry extracted article text and a real
+    publication date, both of which the evidence extractor uses. DuckDuckGo is
+    the no-key safety net: with no provider at all the run loses its grounding
+    entirely, which is a worse outcome than thinner snippets.
+    """
+    results = _tavily_search(query, max_results=max_results, recency_days=recency_days)
+    if results:
+        return results
+    fallback = _duckduckgo_search(query, max_results=max_results, recency_days=recency_days)
+    if fallback:
+        logger.info(f"   🦆 DuckDuckGo returned {len(fallback)} result(s) for '{query}'")
+    return fallback
 
 
 def scrape_full_webpage_fallback(url: str, max_words: int = 1500) -> str:
@@ -198,7 +271,7 @@ def research_node(state: State) -> dict:
     raw_results = []
     duplicates_skipped = 0
 
-    # ✅ FIX: Parallelize Tavily searches.
+    # ✅ FIX: Parallelize the searches.
     # Previously 5 queries ran one-by-one (~4s each = ~20s total).
     # Now they run concurrently in ~5s.
     logger.info(f"🔎 Running {len(queries)} search queries in parallel...")
@@ -206,7 +279,7 @@ def research_node(state: State) -> dict:
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_query = {
-            executor.submit(_tavily_search, q, 5, recency_days): q
+            executor.submit(_web_search, q, 5, recency_days): q
             for q in queries
         }
         for future in as_completed(future_to_query):

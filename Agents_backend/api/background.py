@@ -122,13 +122,20 @@ def _run_pipeline(
     usage_before = _usage.snapshot()
     try:
         generation_config = GenerationConfig.model_validate(config)
-        # Late import so api.py can load without OPENAI_API_KEY set
+        # Late import so the API can load without any model credential set
         from dotenv import load_dotenv
         load_dotenv(_BACKEND_DIR.parent / ".env")
 
         import os as _os
-        if not _os.getenv("OPENAI_API_KEY"):
-            raise EnvironmentError("OPENAI_API_KEY not set in .env")
+        # The pipeline needs A chat credential, not specifically an OpenAI one.
+        # Checking OPENAI_API_KEY alone rejected a perfectly runnable
+        # Gemini-only configuration. See Graph/agents/utils.py for how the
+        # endpoint and credential are resolved.
+        if not any(_os.getenv(k) for k in ("LLM_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY")):
+            raise EnvironmentError(
+                "No LLM credential found in .env — set GOOGLE_API_KEY (free "
+                "Gemini tier), OPENAI_API_KEY, or LLM_API_KEY."
+            )
 
         # ── Import pipeline pieces ────────────────────────────────────────
         pipeline_main = _get_pipeline_main()

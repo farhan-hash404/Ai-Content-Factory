@@ -57,13 +57,32 @@ _DEFAULT_PRICES: dict[str, tuple[float, float]] = {
     "gpt-4o-mini": (0.15, 0.60),
     "text-embedding-3-small": (0.02, 0.0),
     "text-embedding-3-large": (0.13, 0.0),
+    # Gemini entries are 0.00 because this project runs them on the FREE tier,
+    # where requests are billed at nothing and capped by rate limit instead.
+    # They are listed explicitly rather than left to fall through to
+    # _UNKNOWN_MODEL_PRICE so that a $0.00 total means "free tier", not
+    # "price unknown" — report_lines() distinguishes the two, and a reader of
+    # the cost table must be able to tell which they are looking at. Set
+    # LLM_PRICE_GEMINI_2_5_FLASH="0.30,2.50" to price a paid-tier run.
+    # One "gemini" prefix rather than a row per model: Google ships new Gemini
+    # ids faster than this table can track, and a model missing from here is
+    # reported as UNPRICED, which downgrades the whole run's cost figure to a
+    # lower bound. Longest-prefix match means a specific paid override still
+    # wins over this catch-all.
+    "gemini": (0.0, 0.0),
+    "gemma": (0.0, 0.0),
 }
 
 _UNKNOWN_MODEL_PRICE = (0.0, 0.0)
 
 
-def _price_for(model: str) -> tuple[float, float]:
-    """Per-million (input, output) price for a model, honouring env overrides."""
+def _lookup_price(model: str) -> tuple[float, float] | None:
+    """Price for `model`, or None when no price is on record.
+
+    None rather than (0.0, 0.0) because a free-tier model has a genuine price
+    of zero. Collapsing the two made every Gemini run report itself as
+    "unpriced", which is a different and much weaker claim than "free".
+    """
     env_key = "LLM_PRICE_" + model.upper().replace("-", "_").replace(".", "_")
     raw = os.getenv(env_key, "").strip()
     if raw:
@@ -76,7 +95,12 @@ def _price_for(model: str) -> tuple[float, float]:
     for known in sorted(_DEFAULT_PRICES, key=len, reverse=True):
         if model.startswith(known):
             return _DEFAULT_PRICES[known]
-    return _UNKNOWN_MODEL_PRICE
+    return None
+
+
+def _price_for(model: str) -> tuple[float, float]:
+    """Per-million (input, output) price for a model, honouring env overrides."""
+    return _lookup_price(model) or _UNKNOWN_MODEL_PRICE
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +162,10 @@ def delta(before: dict[str, dict[str, int]] | None = None) -> dict[str, Any]:
         if calls <= 0 and inp <= 0 and out <= 0:
             continue
 
-        p_in, p_out = _price_for(model)
-        if (p_in, p_out) == _UNKNOWN_MODEL_PRICE:
+        price = _lookup_price(model)
+        if price is None:
             priced = False
+        p_in, p_out = price or _UNKNOWN_MODEL_PRICE
         cost = (inp / 1_000_000) * p_in + (out / 1_000_000) * p_out
 
         by_model[model] = {

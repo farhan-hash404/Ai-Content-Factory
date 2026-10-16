@@ -11,6 +11,14 @@
 
 A stateful, multi-agent AI system for automated research, content synthesis, multi-modal asset generation, and academic-grade evaluation. Built on **LangGraph**, **FastAPI**, and **React**, this project serves as a **Final Year Project (FYP)** demonstrating agent coordination, parallel processing, Human-in-the-Loop (HITL) workflows, Advanced RAG, and automated LLM-as-judge quality assessment.
 
+> **🎬 Live demo (recorded).** `<LIVE_URL will go here>` — a **static replay of one
+> real generation run** (article, podcast, 9:16 video, AI images, G-Eval +
+> DeepEval scorecards). It needs no server, so it never sleeps and costs nothing.
+> New content can't be generated there — the heavy multi-agent backend (torch,
+> Whisper, ffmpeg, multi-minute jobs) can't run on a free static host. To drive
+> the **full live system**, open the repo in **GitHub Codespaces** (one-click
+> `.devcontainer`) or run it locally — see *Installation* below.
+
 > **Scope.** This is a research and demonstration system, not a production
 > deployment. It runs as a single API worker with a shared-secret access gate
 > and no per-user accounts. The **Known Limitations** section at the end of this
@@ -23,11 +31,11 @@ A stateful, multi-agent AI system for automated research, content synthesis, mul
 
 1. **Stateful Graph Orchestration:** Manages complex agent communications, loops, and conditions with [LangGraph](https://langchain-ai.github.io/langgraph/).
 2. **Stateful Resumption & Checkpointer:** Employs [LangGraph's SqliteSaver](https://langchain-ai.github.io/langgraph/reference/checkpoints/) to persist state. If the process is halted or the server crashes, the engine can resume execution from the exact last saved step without repeating expensive LLM calls or research operations.
-3. **Advanced Document Ingestion (Advanced RAG):** Parses PDFs, DOCX, TXT, and Markdown files. Uses sentence-level embeddings (`text-embedding-3-small`) to construct semantic chunks based on similarity thresholds. It executes cosine-similarity queries to match sections and pull targeted, grounded evidence.
+3. **Advanced Document Ingestion (Advanced RAG):** Parses PDFs, DOCX, TXT, and Markdown files. Uses sentence-level embeddings (`gemini-embedding-001` at 1536 dimensions, or `text-embedding-3-small` on an OpenAI endpoint) to construct semantic chunks based on similarity thresholds. It executes cosine-similarity queries to match sections and pull targeted, grounded evidence.
 4. **Human-in-the-Loop (HITL) Outline Control:** Pauses the writing process to present a draft outline plan to the user. The user can directly modify titles, goals, word counts, and bullet points via the UI, or write natural language feedback to request the LLM to automatically regenerate the plan.
 5. **Parallelized Fan-Out Generation:** Speeds up content generation by writing body sections in parallel. Individual Worker agents are assigned specific sections, receiving only the evidence records matching their topic to prevent redundant text or source-stuffing.
 6. **Multi-Modal Generation Studio:**
-   - **Gemini Podcast Studio:** Synthesizes conversational, solo podcasts using Gemini 2.5 Flash's native audio capabilities, maintaining natural human pacing and speech elements.
+   - **Podcast Studio:** Scripts an 18–20 turn two-host episode, then synthesises each turn with a distinct neural voice through a three-provider chain — keyless Edge TTS, then OpenAI `tts-1-hd`, then single-voice Gemini narration — and merges the turns into one track with inter-turn silence.
    - **Video Generator:** Generates text-to-speech voiceovers, fetches stock B-roll clips from the Pexels API, matches them to the script, and renders videos with synchronized subtitles using MoviePy.
    - **SEO Keyword Optimizer:** Strategically integrates target keywords into headers, body paragraphs, and meta descriptions.
 7. **Academic Evaluation (LLM-as-Judge):** Grades content against academic standards across four dimensions: Coherence, Relevance, Accuracy & Grounding, and Tone Alignment, using both in-house scoring and official [DeepEval](https://github.com/confident-ai/deepeval) GEval metrics.
@@ -122,29 +130,29 @@ which, and `None` is a deliberate design choice rather than a missing feature.
 > specific sampling temperature (the planner asks for 0.7 to vary outlines, the
 > writers for 0.3). Reasoning-family models such as `gpt-5-mini` accept only
 > their default temperature, and `langchain-openai` drops the parameter silently
-> rather than raising — so on the default configuration these values have no
-> effect. They do apply when a non-reasoning model such as `gpt-4o-mini` is
-> chosen via the model selector. Guarded by
+> rather than raising — so on an OpenAI reasoning model these values have no
+> effect. They DO apply on the Gemini models used by default, and on a
+> non-reasoning OpenAI model such as `gpt-4o-mini`. Guarded by
 > `tests/test_evaluation.py::TestTemperatureIsInertOnReasoningModels`.
 
 | Graph Node | Model | Code Implementation | Primary Responsibility & Logic |
 | :--- | :--- | :--- | :--- |
-| **Topic Guard** | `gpt-5-mini` | [topic_guard.py](Agents_backend/Graph/agents/topic_guard.py) | Two tiers: a free deterministic screen rejects malformed input (empty, too short/long, no letters, gibberish); the LLM then judges whether a well-formed topic is semantically unsafe. Runs before a job is created, so rejected topics cost no pipeline tokens. |
-| **Router** | `gpt-5-mini` | [routing.py](Agents_backend/Graph/agents/routing.py) | Chooses `closed_book` / `hybrid` / `open_book`, drafts search queries, and sets the recency window Tavily filters on. |
-| **Researcher** | `gpt-5-mini` + Tavily | [research.py](Agents_backend/Graph/agents/research.py) | Runs queries in parallel, scrapes results (Jina Reader with a BeautifulSoup fallback), filters near-duplicates by Jaccard overlap, and extracts structured evidence. Downgrades the mode to `closed_book` if nothing usable is found, so an ungrounded post is never reported as grounded. |
-| **Ingest / RAG** | `text-embedding-3-small` + `gpt-5-mini` | [document_ingest.py](Agents_backend/Graph/agents/document_ingest.py) | Semantic chunking via sentence-embedding distance, ChromaDB indexing, and topic-scoped retrieval with a three-tier fallback (Chroma → local vectors → persisted evidence). Evidence is extracted only from retrieved chunks. |
-| **Orchestrator** | `gpt-5-mini` | [orchestrator.py](Agents_backend/Graph/agents/orchestrator.py) | Plans the outline, then **partitions evidence across sections** so parallel workers cite different sources instead of converging on the same few statistics. A higher temperature is requested to vary outlines between runs, but reasoning-family models such as `gpt-5-mini` ignore the parameter — see the note below the table. |
-| **Worker (×N)** | `gpt-5-mini` | [workers.py](Agents_backend/Graph/agents/workers.py) | Writes its assigned section in parallel via LangGraph `Send()`, receiving only its own evidence slice plus sibling section titles for transition context. |
+| **Topic Guard** | `LLM_FAST_MODEL` | [topic_guard.py](Agents_backend/Graph/agents/topic_guard.py) | Two tiers: a free deterministic screen rejects malformed input (empty, too short/long, no letters, gibberish); the LLM then judges whether a well-formed topic is semantically unsafe. Runs before a job is created, so rejected topics cost no pipeline tokens. |
+| **Router** | `LLM_FAST_MODEL` | [routing.py](Agents_backend/Graph/agents/routing.py) | Chooses `closed_book` / `hybrid` / `open_book`, drafts search queries, and sets the recency window Tavily filters on. |
+| **Researcher** | `LLM_FAST_MODEL` + Tavily / DuckDuckGo | [research.py](Agents_backend/Graph/agents/research.py) | Runs queries in parallel, scrapes results (Jina Reader with a BeautifulSoup fallback), filters near-duplicates by Jaccard overlap, and extracts structured evidence. Downgrades the mode to `closed_book` if nothing usable is found, so an ungrounded post is never reported as grounded. |
+| **Ingest / RAG** | `EMBEDDING_MODEL` + `LLM_FAST_MODEL` | [document_ingest.py](Agents_backend/Graph/agents/document_ingest.py) | Semantic chunking via sentence-embedding distance, ChromaDB indexing, and topic-scoped retrieval with a three-tier fallback (Chroma → local vectors → persisted evidence). Evidence is extracted only from retrieved chunks. |
+| **Orchestrator** | `LLM_QUALITY_MODEL` | [orchestrator.py](Agents_backend/Graph/agents/orchestrator.py) | Plans the outline, then **partitions evidence across sections** so parallel workers cite different sources instead of converging on the same few statistics. A higher temperature is requested to vary outlines between runs; see the note below the table for when that takes effect. |
+| **Worker (×N)** | selected model, else `LLM_QUALITY_MODEL` | [workers.py](Agents_backend/Graph/agents/workers.py) | Writes its assigned section in parallel via LangGraph `Send()`, receiving only its own evidence slice plus sibling section titles for transition context. |
 | **Reducer** | **None** (deterministic) | [workers.py](Agents_backend/Graph/agents/workers.py) | Orders sections by task ID, joins them, and builds the references table from the evidence pool — all plain Python. The single LLM call in this module generates SEO metadata, not the merge itself. |
 | **Completion Validator** | **None** (deterministic) | [completion_validator.py](Agents_backend/Graph/completion_validator.py) | Regex checks for missing sections and low word count, applies shared auto-repairs, and scores completeness. No model involved. |
-| **Quality Control** | `gpt-5-mini` + deterministic check | [quality_control.py](Agents_backend/Graph/agents/quality_control.py) | Audits the draft against evidence for hallucinations and structure. A **non-LLM citation verifier** parses every hyperlink and checks it against the research evidence by URL and domain; any unmatched link forces `NEEDS_REVISION` and caps the score at 6.0 regardless of the model's opinion. |
-| **Revision** | `gpt-5-mini` | [revision.py](Agents_backend/Graph/agents/revision.py) | Surgically rewrites only the sections carrying critical issues, falling back to a full-article edit. Bounded at 2 attempts; output shorter than 60% of the original is rejected. |
-| **SEO Optimizer** | `gpt-5-mini` + deterministic analysis | [keyword_optimizer.py](Agents_backend/Graph/keyword_optimizer.py) | Keyword density and placement are computed in Python; the model is used only to weave under-represented keywords back into the weakest passages. |
-| **Image Planner** | `gpt-5-mini` → DALL·E / Gemini / Flux | [multimedia.py](Agents_backend/Graph/agents/multimedia.py) | Plans placements and prompts, then generates through a three-provider fallback chain (OpenAI → Google Gemini → Pollinations). |
-| **Campaign Gen** | `gpt-5-mini` | [campaign.py](Agents_backend/Graph/agents/campaign.py) | Summarises the **full** article into a structured brief, then writes a LinkedIn post and an X/Twitter post in parallel. *Currently these two channels only* — the state carries fields for email, landing page, Facebook and YouTube, but they are not generated. |
+| **Quality Control** | `LLM_QUALITY_MODEL` + deterministic check | [quality_control.py](Agents_backend/Graph/agents/quality_control.py) | Audits the draft against evidence for hallucinations and structure. A **non-LLM citation verifier** parses every hyperlink and checks it against the research evidence by URL and domain; any unmatched link forces `NEEDS_REVISION` and caps the score at 6.0 regardless of the model's opinion. |
+| **Revision** | `LLM_QUALITY_MODEL` | [revision.py](Agents_backend/Graph/agents/revision.py) | Surgically rewrites only the sections carrying critical issues, falling back to a full-article edit. Bounded at 2 attempts; output shorter than 60% of the original is rejected. |
+| **SEO Optimizer** | `LLM_QUALITY_MODEL` + deterministic analysis | [keyword_optimizer.py](Agents_backend/Graph/keyword_optimizer.py) | Keyword density and placement are computed in Python; the model is used only to weave under-represented keywords back into the weakest passages. |
+| **Image Planner** | `LLM_FAST_MODEL` → Pollinations / Gemini / DALL·E → Pexels → local render | [multimedia.py](Agents_backend/Graph/agents/multimedia.py) | Plans placements and prompts, then generates through a five-link fallback chain. The selected `image_model` decides where the chain *starts*, not which providers may be used. Ordered by descending "actually generated" and ascending reliability: Pollinations is genuine generation but its anonymous tier answers `402` after a couple of images; Pexels then returns a real photograph (the log says so plainly); an offline Pillow-rendered captioned figure is last and cannot fail, so no figure slot ever ships as a broken image. |
+| **Campaign Gen** | `LLM_FAST_MODEL` | [campaign.py](Agents_backend/Graph/agents/campaign.py) | Summarises the **full** article into a structured brief, then writes a LinkedIn post and an X/Twitter post in parallel. *Currently these two channels only* — the state carries fields for email, landing page, Facebook and YouTube, but they are not generated. |
 | **Podcast Studio** | `gemini-2.5-flash` | [podcast_studio.py](Agents_backend/Graph/podcast_studio.py) | Generates a single-speaker audio podcast using Gemini's native audio output. |
-| **Video Gen** | `gpt-5-mini` + Gemini TTS + Whisper | [video.py](Agents_backend/Graph/agents/video.py) | Scripts the voiceover, synthesises speech via Gemini TTS (with backoff), derives word-level timings with Whisper for karaoke captions, pulls portrait B-roll from Pexels, and composites a 9:16 MP4 with MoviePy. |
-| **Academic Judge** | `LLM_JUDGE_MODEL` (defaults to `gpt-5-mini`) | [evaluation.py](Agents_backend/Graph/agents/evaluation.py) | In-house G-Eval scorecard (1–5) runs inside the graph; the weighted overall is computed in Python, not by the model. The official `deepeval` G-Eval runs **on demand** via its own endpoint, not as a graph node. |
+| **Video Gen** | `LLM_QUALITY_MODEL` + Edge TTS + Whisper | [video.py](Agents_backend/Graph/agents/video.py) | Scripts the voiceover, synthesises speech via keyless Edge TTS (Gemini TTS as fallback), derives word-level timings with locally-run Whisper for karaoke captions, pulls portrait B-roll from Pexels, and composites a 9:16 MP4 with MoviePy. |
+| **Academic Judge** | `LLM_JUDGE_MODEL` (defaults to `LLM_QUALITY_MODEL`) | [evaluation.py](Agents_backend/Graph/agents/evaluation.py) | In-house G-Eval scorecard (1–5) runs inside the graph; the weighted overall is computed in Python, not by the model. The official `deepeval` G-Eval runs **on demand** via its own endpoint, not as a graph node. |
 
 ---
 
@@ -223,11 +231,12 @@ Both reports are written to the `reports/` folder of each generated blog for aca
   - [state.py](Agents_backend/Graph/state.py) — Defines the Graph memory structures using [State TypedDict](Agents_backend/Graph/state.py#L85), [Plan](Agents_backend/Graph/state.py#L51), and [Task](Agents_backend/Graph/state.py#L29) definitions.
   - [nodes.py](Agents_backend/Graph/nodes.py) — Maps graph nodes to corresponding agent functions.
   - [templates.py](Agents_backend/Graph/templates.py) — System instructions, roles, and formatting guidelines.
-  - [podcast_studio.py](Agents_backend/Graph/podcast_studio.py) — Script to interface with the `google-genai` SDK and synthesize audio.
+  - [podcast_studio.py](Agents_backend/Graph/podcast_studio.py) — Scripts the two-host episode and synthesises it through the TTS provider chain.
+  - [tts.py](Agents_backend/Graph/tts.py) — Keyless speech synthesis (Edge TTS) plus the ffmpeg resolution that makes locally-run Whisper work; shared by the podcast and video agents so both speak the same 24 kHz mono PCM.
 * **Specialized Agent Implementation:**
   - [topic_guard.py](Agents_backend/Graph/agents/topic_guard.py) — Evaluates input topic safety.
-  - [routing.py](Agents_backend/Graph/agents/routing.py) — Directs work to Tavily Search or closed-book agents.
-  - [research.py](Agents_backend/Graph/agents/research.py) — Handles Tavily search processes.
+  - [routing.py](Agents_backend/Graph/agents/routing.py) — Directs work to the search agents or the closed-book path.
+  - [research.py](Agents_backend/Graph/agents/research.py) — Runs the search providers (Tavily, with keyless DuckDuckGo as fallback), scraping and evidence extraction.
   - [document_ingest.py](Agents_backend/Graph/agents/document_ingest.py) — Manages PDF/Word file parsing, semantic chunking, and retrieval queries.
   - [orchestrator.py](Agents_backend/Graph/agents/orchestrator.py) — Creates draft outline structures.
   - [workers.py](Agents_backend/Graph/agents/workers.py) — Implements parallel workers and merger nodes.
@@ -236,6 +245,7 @@ Both reports are written to the `reports/` folder of each generated blog for aca
   - [evaluation.py](Agents_backend/Graph/agents/evaluation.py) — Contains in-house and DeepEval G-Eval nodes.
   - [campaign.py](Agents_backend/Graph/agents/campaign.py) — Creates social media marketing materials.
   - [video.py](Agents_backend/Graph/agents/video.py) — Builds script-to-video pipelines.
+  - [utils.py](Agents_backend/Graph/agents/utils.py) — The single LLM client factory: endpoint and credential resolution, per-model rate limiting, cross-model quota failover, and usage metering.
 
 ### 🎨 Frontend Components
 * **Source Files (`frontend/src/`):**
@@ -259,7 +269,7 @@ Both reports are written to the `reports/` folder of each generated blog for aca
 ### Prerequisites
 * **Python 3.11+**
 * **Node.js 18+**
-* **ffmpeg:** Required for processing audio and videos. Add the executable to your system's environment `PATH` variable.
+* **ffmpeg:** used for audio decoding, video rendering and Whisper transcription. A system install on `PATH` is preferred, but not required — the `imageio-ffmpeg` wheel bundles a binary and `Graph/tts.py::ensure_ffmpeg_on_path()` exposes it to the tools that shell out to a bare `ffmpeg` (notably local Whisper, whose missing-binary error otherwise reads like a corrupt audio file).
 * **ImageMagick (Optional):** Required if customizing caption layouts using MoviePy.
 
 ### 1. Install Project Dependencies
@@ -294,43 +304,104 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the root directory and add the following keys:
+Copy `.env.example` to `.env` and fill in the keys. `.env.example` is the
+authoritative reference — every variable is documented there with the reason it
+exists. What follows is the short version.
+
+#### Provider layout
+
+The system runs end-to-end **without any paid API**. Nothing below is billed,
+and only three of the providers need an account at all:
+
+| Capability | Provider | Key |
+| :--- | :--- | :--- |
+| Chat, planning, QA, revision, evaluation | Gemini free tier | `GOOGLE_API_KEY` ([free](https://aistudio.google.com/apikey)) |
+| Document embeddings (RAG) | `gemini-embedding-001` | same key |
+| Web research | Tavily free tier (1000 credits/month) | `TAVILY_API_KEY` ([free](https://app.tavily.com)) |
+| Web research fallback | DuckDuckGo | none |
+| Images | Pollinations, then Pexels stock, then an offline rendered figure | none / `PEXELS_API_KEY` |
+| Podcast + video speech | Edge TTS | none |
+| Caption word timestamps | Whisper, running locally | none |
+| Video B-roll + image fallback | Pexels free tier | `PEXELS_API_KEY` ([free](https://www.pexels.com/api/)) |
 
 ```ini
-# OpenAI Keys — Used for Reasoning (GPT-4o) and Document Embeddings
-OPENAI_API_KEY=sk-...
-
-# Tavily Scraper Key — Used for Web Research
-TAVILY_API_KEY=tvly-...
-
-# Google Cloud API Key — Used for Gemini Native Audio TTS and Video TTS
-# Note: Set GOOGLE_API_KEY; do not use GEMINI_API_KEY.
+# ── LLM provider ────────────────────────────────────────────────────────────
 GOOGLE_API_KEY=AIzaSy...
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_FAST_MODEL=gemini-3.5-flash-lite
+LLM_QUALITY_MODEL=gemini-3.6-flash
 
-# Pexels API Key — Used for B-roll Video Search
+# Leave EMPTY unless you actually have OpenAI credit. A non-empty value here is
+# read by several modules as "the OpenAI REST API is reachable", which makes
+# them call DALL-E / Whisper / TTS directly. It is never reused as the Gemini
+# credential.
+OPENAI_API_KEY=
+
+# ── Free-tier quota handling (see below) ────────────────────────────────────
+LLM_REQUESTS_PER_MINUTE=5
+LLM_FALLBACK_MODELS=gemini-3.7-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3-flash-preview,gemini-3.6-flash,gemini-3.5-flash
+
+# ── Research and media ──────────────────────────────────────────────────────
+TAVILY_API_KEY=tvly-...
 PEXELS_API_KEY=...
+
+# ── Evaluation ──────────────────────────────────────────────────────────────
+# Read ONLY by the evaluation node. Defaults to LLM_QUALITY_MODEL; set to a
+# different model to run an independent-judge arm WITHOUT also moving the QA
+# auditor and the reviser, which would confound the comparison.
+LLM_JUDGE_MODEL=gemini-3-flash-preview
+DEEPEVAL_TELEMETRY_OPT_OUT=YES
 
 # ── Optional ────────────────────────────────────────────────────────────────
 # Shared-secret API key. When set, all REST routes and the WebSocket require it.
 # The frontend must be given the same value as VITE_API_KEY. Unset = open API.
 # API_KEY=choose-a-long-random-string
-
-# CORS allowlist (comma-separated). Defaults to the local Vite dev origins.
 # ALLOWED_ORIGINS=http://localhost:3000
-
-# Override the default models. LLM_QUALITY_MODEL also sets the G-Eval judge,
-# so keep it fixed when comparing writer models across runs.
-# LLM_FAST_MODEL=gpt-5-mini
-# LLM_QUALITY_MODEL=gpt-5-mini
-#
-# Evaluation judge only. Defaults to LLM_QUALITY_MODEL. Set this to run an
-# independent-judge arm WITHOUT also changing the QA auditor and reviser,
-# which read LLM_QUALITY_MODEL:
-# LLM_JUDGE_MODEL=gpt-4o
-
-# PostgreSQL instead of SQLite (set automatically by docker-compose).
 # DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_content_factory
 ```
+
+#### Why the endpoint is swappable
+
+Every chat client in the project is a `ChatOpenAI`, which is an
+**OpenAI-protocol** client rather than an OpenAI-only one. Pointing
+`LLM_BASE_URL` at another vendor's compatibility endpoint runs the entire
+pipeline — `.with_structured_output()` tool calling included — against that
+vendor with no change at any call site. `Graph/agents/utils.py` resolves one
+endpoint, one credential, the usage callback, the rate limiter and the fallback
+pool in a single factory (`make_chat_llm`). The same two variables point the
+system at vLLM, Ollama, OpenRouter or Groq.
+
+Embeddings follow the same endpoint, with dimensions pinned to 1536 — a Chroma
+collection fixes its vector width on first write, so an index built at 1536
+cannot accept `gemini-embedding-001`'s native 3072 without a dimension-mismatch
+failure that silently costs the upload its RAG index.
+
+#### Working inside the free tier
+
+The Gemini free tier enforces two separate quotas, both **per model**, and each
+broke the pipeline in a different way:
+
+| Quota | Value | Symptom | Fix |
+| :--- | :--- | :--- | :--- |
+| Requests per minute | 5 | The orchestrator writes sections concurrently, so a 7-section outline fired 7 requests at once and everything past the fifth returned `429 RESOURCE_EXHAUSTED`. | A blocking token bucket per model id (`LLM_REQUESTS_PER_MINUTE`). Retries cannot fix this: their backoff is seconds while the quota window is a rolling minute, and every concurrent request retries into the same exhausted window. |
+| Requests per day | 20 | One complete run makes over thirty calls, so the budget is gone before the run finishes and waiting does not help. | Cross-model failover (`LLM_FALLBACK_MODELS`). The cap is per model and the endpoint serves many interchangeable ones, so a quota-blocked request is retried on the next model, multiplying the daily budget by the size of the pool. |
+
+Both are off by default on a non-Google endpoint, where they would be pure
+added latency. A model that returns a per-**day** quota error is remembered and
+skipped for the rest of the process, so later calls do not spend a round-trip
+on a model that is finished for the day. The model that actually served a
+request is what `usage.py` attributes tokens to, so a cost table after a
+failover shows the substitution rather than hiding it.
+
+Two practical notes for a demo:
+
+* **Prefer `3.6`/`3.5-flash` over the newest `3.8`/`3.7-flash`.** The newest
+  models are the most contended on the free tier — in a probe of four
+  consecutive calls, two came back `503 "experiencing high demand"`, which is
+  enough to kill a run.
+* **A full run takes roughly 15–25 minutes** on the free tier, nearly all of it
+  spent waiting on the 5/minute limiter. This is a quota cost, not a
+  performance characteristic of the system.
 
 ---
 
@@ -347,12 +418,22 @@ This mode runs the complete web app with live WebSocket logs, outline editing, a
    cd Agents_backend
    uvicorn api:app --reload --reload-exclude "data/*" --host 0.0.0.0 --port 8000
    ```
+   On startup the log states which endpoint, models and quota settings were
+   resolved — check this line first if a run behaves unexpectedly:
+   ```text
+   LLM endpoint: https://generativelanguage.googleapis.com/v1beta/openai/ | fast=gemini-3.5-flash-lite quality=gemini-3.6-flash judge=gemini-3-flash-preview | rate limit: 5/min per model
+   ```
 2. **Start the Vite Frontend Server:**
    ```bash
    cd frontend
    npm run dev
    ```
 3. **Open in Browser:** Navigate to `http://localhost:3000`.
+4. **Approve the outline.** The graph pauses at the Human-in-the-Loop gate with
+   status `awaiting_approval` and does not proceed until the plan is approved or
+   revised in the UI. On the free tier, expect **15–25 minutes** for a full run
+   with podcast, video, images and both evaluation arms enabled — almost all of
+   it spent waiting on the 5-requests-per-minute limiter.
 
 ### Mode B: CLI Execution Mode
 For direct execution and testing via command-line arguments:
@@ -396,15 +477,49 @@ blogs/quantum_computing_20260521_103000/
 
 ---
 
+## 🌐 Deploying the Recorded Demo (free, no credit card)
+
+The multi-agent backend is heavy and long-running, so it cannot be hosted on a
+free static/serverless tier. For a public portfolio link we ship a **static
+replay** of one real run instead. Reviewers who want the live system open it in
+**GitHub Codespaces** via the bundled `.devcontainer`.
+
+**How the demo build works.** `npm run build:demo` (Vite `--mode demo`, which
+loads `frontend/.env.demo` → `VITE_DEMO_MODE=1`) produces a bundle where every
+read in `frontend/src/api.ts` is served from static fixtures under
+`frontend/public/demo/` — captured from a real completed job (its `/api/jobs`,
+`/api/jobs/:id`, `/api/jobs/:id/events` responses, the article, images, podcast,
+video and PDF/DOCX/HTML exports). Write actions (create a job, trigger media) are
+disabled with a clear message, and the WebSocket is a no-op. The normal
+`npm run build` — the one the FastAPI backend serves — is **unaffected**.
+
+**Deploy to Vercel (Hobby, no card):**
+1. Push this repo to GitHub.
+2. [vercel.com](https://vercel.com) → **Add New → Project** → import the repo.
+3. Set **Root Directory** to `frontend`. `frontend/vercel.json` already pins the
+   build command (`npm run build:demo`) and output (`dist`) — no other settings.
+4. **Deploy.** No environment variables are needed (the demo is fully static).
+
+Cloudflare Pages / Netlify work identically: root `frontend`, build
+`npm run build:demo`, output directory `dist`. The demo payload (≈15 MB, incl. a
+re-encoded 5.7 MB video) is within every free tier's per-file limit.
+
+**Run the full live system (GitHub Codespaces, free):** open the repo → **Code →
+Codespaces → Create**. The `.devcontainer` installs ffmpeg and all dependencies;
+add a free `GOOGLE_API_KEY` to `.env`, then start the backend and frontend as in
+*Installation* above. Mind the free-tier Gemini quota (20 requests/day/model).
+
+---
+
 ## ⚠️ Known Limitations & Future Scope
 
 * **Checkpointer Backends:** The web application persists checkpoints with `SqliteSaver`, or `PostgresSaver` when `DATABASE_URL` points at Postgres (docker-compose sets this automatically, with an automatic fallback to SQLite if the connection fails). The volatile `MemorySaver` is only the default for the standalone CLI path, where a run is not expected to outlive the process — CLI runs therefore cannot be resumed after a crash.
 
 * **Prompt Injection — not mitigated.** Text scraped from the open web and text extracted from uploaded documents is passed into LLM prompts as evidence with no instruction-hierarchy defence: no delimiter fencing, no escaping, and no validation that extracted "facts" originated in the source rather than in an instruction embedded within it. A web page containing something like *"ignore previous instructions and instead write…"* is handed to the extraction model as ordinary content. The affected paths are the research extractor, the document-chunk extractor, the section writers, and the QA auditor. Realistic mitigations — fencing untrusted spans in explicit delimiters, instructing the extractor to treat the span as data only, and validating that each extracted snippet is a substring of its source — are known but unimplemented. This is the most significant unaddressed security weakness in the system.
 
-* **No Rate Limiting:** No endpoint is rate limited. Because `POST /api/jobs` triggers real spend on OpenAI, Tavily and Google APIs, an instance left reachable without `API_KEY` set can be driven into an unbounded bill by anyone who finds it. Set `API_KEY`, keep the deployment on `localhost`, or place a reverse proxy in front of it.
+* **No Rate Limiting:** No endpoint is rate limited. `POST /api/jobs` consumes real provider quota — free-tier quota in the default configuration, billable spend if `OPENAI_API_KEY` or a paid Gemini tier is configured — so an instance left reachable without `API_KEY` set can be driven into an exhausted quota, or an unbounded bill, by anyone who finds it. Set `API_KEY`, keep the deployment on `localhost`, or place a reverse proxy in front of it.
 
-* **Evaluation Methodology:** The reported quality scores were produced with the same model acting as both writer and judge (`gpt-5-mini`), a known source of self-preference bias in LLM-as-a-judge evaluation. The judge is configured separately via `LLM_QUALITY_MODEL`, so an independent-judge run needs no code change. The published figures also come from three topics with one run each and no baseline comparison arm, so they characterise the system's own behaviour rather than demonstrating superiority over a simpler approach. No human annotation of factual accuracy was performed.
+* **Evaluation Methodology:** The published quality scores were produced with the same model acting as both writer and judge (`gpt-5-mini`), a known source of self-preference bias in LLM-as-a-judge evaluation. The judge is now configured separately via `LLM_JUDGE_MODEL` — and is set to a different model from `LLM_QUALITY_MODEL` in the shipped configuration — so an independent-judge run needs no code change, but the published figures predate that change and still carry the bias. The published figures also come from three topics with one run each and no baseline comparison arm, so they characterise the system's own behaviour rather than demonstrating superiority over a simpler approach. No human annotation of factual accuracy was performed.
 * **Single-Speaker Audio:** The Gemini Podcast studio is set to a single-speaker voice (`Aoede`). Future updates could add two-speaker dialogue scripts using two distinct Gemini audio voices.
 * **Authentication:** Access control is a single shared secret, not per-user auth. Setting `API_KEY` in `.env` makes every REST route and the WebSocket require it (`X-API-Key` header, or `?api_key=` for browser-initiated requests such as `<img>` and downloads); leaving it unset keeps the API open, which is only appropriate on `localhost`. CORS defaults to the local dev origins and is configurable via `ALLOWED_ORIGINS`. A public deployment needs real per-user authentication (OAuth2) and per-user job ownership — currently any authenticated caller can read and delete every job.
 * **Single-Process Concurrency:** Jobs run in background threads, and HITL approval blocks one of those threads for up to 20 minutes. The approval events are held in an in-process dictionary, so the API must run as a single worker; a multi-worker or multi-replica deployment needs an external task queue and a shared store. The SqliteSaver/PostgresSaver checkpointer is what makes crash recovery possible without one.

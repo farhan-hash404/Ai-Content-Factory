@@ -16,9 +16,7 @@ export function LoadingState({
   const sortedEvents = [...agentEvents].sort((a, b) => a.timestamp - b.timestamp);
 
   return (
-    <div className="glass-panel p-12 rounded-2xl flex flex-col items-center justify-center text-center min-h-[400px] border border-white/4 max-w-3xl mx-auto overflow-hidden relative">
-      {/* Background Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-linear-to-r from-transparent via-accent-500/20 to-transparent"></div>
+    <div className="card-bento p-10 md:p-12 flex flex-col items-center justify-center text-center min-h-[380px] max-w-2xl mx-auto overflow-hidden relative shadow-lg">
 
       <div className="relative mb-10 group">
         <div className="absolute inset-[-10px] bg-accent-500/15 rounded-full blur-2xl group-hover:bg-accent-500/25 transition-all duration-700"></div>
