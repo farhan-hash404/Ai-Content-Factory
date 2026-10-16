@@ -2,136 +2,143 @@
 @plugin "@tailwindcss/typography";
 
 /* ===================================================================
-   Aesthetic: Dark editorial + warm amber accent. 
-   Inspired by late-night creative studios, not generic SaaS dashboards.
+   Aesthetic: Solarin Futuristic Luxury Tech
+   Palette: #2C3531 (Slate Obsidian), #116466 (Jewel Teal),
+            #D9B08C (Bronze Tan), #FFCB9A (Glowing Peach),
+            #D1E8E2 (Luminous Ice Mint)
    =================================================================== */
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, monospace;
 
-  /* --- Core Palette: Premium Deep Slate Dark (Linear/Vercel standard) --- */
-  --color-base-950: #0a0d14;
-  --color-base-900: #101623;
-  --color-base-850: #172033;
-  --color-base-800: #1f2a40;
-  --color-base-750: #293752;
-  --color-base-700: #38496b;
-  --color-base-600: #50658f;
-  --color-base-500: #7187b2;
-  --color-base-400: #9cb0d4;
-  --color-base-300: #c4d3eb;
-  --color-base-200: #e4ecf7;
-  --color-base-100: #f4f8fd;
-  --color-base-50:  #ffffff;
+  /* --- Core Palette: Solarin Dark Luxury Obsidian --- */
+  /* #2C3531 is the exact base palette anchor */
+  --color-base-950: #121715;
+  --color-base-900: #1a221f;
+  --color-base-850: #222c28;
+  --color-base-800: #2c3531;
+  --color-base-750: #37433e;
+  --color-base-700: #46554f;
+  --color-base-600: #5c7068;
+  --color-base-500: #7b948a;
+  --color-base-400: #9fb7ad;
+  --color-base-300: #bcd0c8;
+  --color-base-200: #d1e8e2;
+  --color-base-100: #eaf4f0;
+  --color-base-50:  #f5faf8;
 
-  /* --- Accent: Clean Indigo / Electric Blue --- */
-  --color-accent-500: #6366f1;
-  --color-accent-400: #818cf8;
-  --color-accent-300: #a5b4fc;
-  --color-accent-200: #c7d2fe;
-  --color-accent-600: #4f46e5;
-  --color-accent-700: #4338ca;
-  --color-accent-glow: rgba(99, 102, 241, 0.16);
+  /* --- Primary Accent: Jewel Teal (#116466) & Ice Mint (#D1E8E2) --- */
+  --color-accent-700: #0a3d3e;
+  --color-accent-600: #0d4e50;
+  --color-accent-500: #116466;
+  --color-accent-400: #198284;
+  --color-accent-300: #36a5a7;
+  --color-accent-200: #7ecac6;
+  --color-accent-100: #d1e8e2;
+  --color-accent-glow: rgba(17, 100, 102, 0.40);
+  --color-mint-glow: rgba(209, 232, 226, 0.28);
 
-  /* --- Review / Amber Accent --- */
-  --color-amber-500: #f59e0b;
-  --color-amber-400: #fbbf24;
-  --color-amber-600: #d97706;
+  /* --- Warm Highlights: Sand Bronze (#D9B08C) & Glowing Peach (#FFCB9A) --- */
+  --color-amber-700: #936743;
+  --color-amber-600: #b58359;
+  --color-amber-500: #d9b08c;
+  --color-amber-400: #ffcb9a;
+  --color-amber-300: #ffdcbb;
+  --color-amber-200: #ffeedd;
+  --color-peach-500: #ffcb9a;
+  --color-peach-600: #d9b08c;
+  --color-amber-glow: rgba(255, 203, 154, 0.28);
 
   /* --- Signal: Emerald for success, rose for error --- */
   --color-signal-success: #10b981;
-  --color-signal-success-dim: rgba(16, 185, 129, 0.12);
+  --color-signal-success-dim: rgba(16, 185, 129, 0.14);
   --color-signal-error: #f43f5e;
-  --color-signal-error-dim: rgba(244, 63, 94, 0.12);
-  --color-signal-info: #3b82f6;
-  --color-signal-info-dim: rgba(59, 130, 246, 0.12);
-  --color-signal-warning: #f59e0b;
-  --color-signal-warning-dim: rgba(245, 158, 11, 0.12);
+  --color-signal-error-dim: rgba(244, 63, 94, 0.14);
+  --color-signal-info: #198284;
+  --color-signal-info-dim: rgba(25, 130, 132, 0.16);
+  --color-signal-warning: #ffcb9a;
+  --color-signal-warning-dim: rgba(255, 203, 154, 0.16);
 
-  /* --- Semantic mappings (backward compat) --- */
-  --color-surface: #0a0a0c;
-  --color-surface-dim: #0a0a0c;
-  --color-surface-bright: #25252e;
-  --color-surface-container-lowest: #111114;
-  --color-surface-container-low: #161619;
-  --color-surface-container: #1a1a1f;
-  --color-surface-container-high: #1f1f26;
-  --color-surface-container-highest: #25252e;
-  --color-on-surface: #e0e0ec;
-  --color-on-surface-variant: #9090a8;
-  --color-outline: #6b6b80;
-  --color-outline-variant: #32323e;
-  --color-primary: #fbbf24;
-  --color-primary-container: #b45309;
-  --color-on-primary: #0a0a0c;
-  --color-secondary: #60a5fa;
-  --color-secondary-container: #1e3a5f;
-  --color-tertiary: #34d399;
-  --color-tertiary-container: #064e3b;
+  /* --- Semantic mappings --- */
+  --color-surface: #121715;
+  --color-surface-dim: #121715;
+  --color-surface-bright: #2c3531;
+  --color-surface-container-lowest: #0e1211;
+  --color-surface-container-low: #151d1a;
+  --color-surface-container: #1a221f;
+  --color-surface-container-high: #222c28;
+  --color-surface-container-highest: #2c3531;
+  --color-on-surface: #d1e8e2;
+  --color-on-surface-variant: #9fb7ad;
+  --color-outline: #46554f;
+  --color-outline-variant: #222c28;
+  --color-primary: #116466;
+  --color-primary-container: #2c3531;
+  --color-on-primary: #d1e8e2;
+  --color-secondary: #ffcb9a;
+  --color-secondary-container: #d9b08c;
+  --color-tertiary: #d1e8e2;
+  --color-tertiary-container: #0d4e50;
   --color-error: #fb7185;
   --color-error-container: #4c0519;
-  --color-background: #0a0a0c;
-  --color-on-background: #e0e0ec;
-  --color-surface-variant: #1a1a1f;
-  --color-on-primary-fixed: #0a0a0c;
-  --color-primary-fixed: #fde68a;
-  --color-surface-tint: #fbbf24;
-  --color-inverse-primary: #d97706;
-  --color-primary-fixed-dim: #fbbf24;
+  --color-background: #121715;
+  --color-on-background: #d1e8e2;
+  --color-surface-variant: #1a221f;
+  --color-on-primary-fixed: #121715;
+  --color-primary-fixed: #d1e8e2;
+  --color-surface-tint: #116466;
+  --color-inverse-primary: #198284;
+  --color-primary-fixed-dim: #116466;
   --color-on-error-container: #fecdd3;
-  --color-secondary-fixed: #bfdbfe;
-  --color-tertiary-fixed: #a7f3d0;
-  --color-tertiary-fixed-dim: #34d399;
+  --color-secondary-fixed: #ffcb9a;
+  --color-tertiary-fixed: #d1e8e2;
+  --color-tertiary-fixed-dim: #7ecac6;
 }
 
 /* ===================================================================
    LIGHT THEME OVERRIDES
    Activated by setting `data-theme="light"` on <html>.
-   The amber accent + signal colors stay the same so the brand feel is
-   consistent across themes; only the neutral base scale is inverted.
    =================================================================== */
 
 :root[data-theme="light"] {
-  --color-base-950: #f5f5f7;
-  --color-base-900: #ececef;
-  --color-base-850: #e3e3e8;
-  --color-base-800: #d9d9e0;
-  --color-base-750: #cfcfd8;
-  --color-base-700: #bdbdc9;
-  --color-base-600: #9a9aab;
-  --color-base-500: #7a7a8c;
-  --color-base-400: #5a5a6c;
-  --color-base-300: #3f3f50;
-  --color-base-200: #2a2a38;
-  --color-base-100: #15151e;
-  --color-base-50:  #0a0a0c;
+  --color-base-950: #f4f7f6;
+  --color-base-900: #e8edea;
+  --color-base-850: #dde3e0;
+  --color-base-800: #cdd6d2;
+  --color-base-750: #bdc8c3;
+  --color-base-700: #9fb0a9;
+  --color-base-600: #7b9188;
+  --color-base-500: #5c726a;
+  --color-base-400: #42554e;
+  --color-base-300: #2c3531;
+  --color-base-200: #1a221f;
+  --color-base-100: #121715;
+  --color-base-50:  #080a09;
 
-  --color-surface: #f5f5f7;
-  --color-surface-dim: #ececef;
+  --color-surface: #f4f7f6;
+  --color-surface-dim: #e8edea;
   --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f5f5f7;
-  --color-surface-container: #ececef;
-  --color-surface-container-high: #e3e3e8;
-  --color-surface-container-highest: #d9d9e0;
-  --color-on-surface: #15151e;
-  --color-on-surface-variant: #3f3f50;
-  --color-background: #f5f5f7;
-  --color-on-background: #15151e;
+  --color-surface-container-low: #f4f7f6;
+  --color-surface-container: #e8edea;
+  --color-surface-container-high: #dde3e0;
+  --color-surface-container-highest: #cdd6d2;
+  --color-on-surface: #121715;
+  --color-on-surface-variant: #42554e;
+  --color-background: #f4f7f6;
+  --color-on-background: #121715;
 
-  /* Light theme swaps the accent palette from amber to a deep, professional
-     blue (Stripe / Linear feel). Everything that uses `accent-*` utilities —
-     hover text, focus rings, badges, links — automatically picks this up. */
-  --color-accent-500: #2563eb;
-  --color-accent-400: #3b82f6;
-  --color-accent-300: #60a5fa;
-  --color-accent-200: #93c5fd;
-  --color-accent-600: #1d4ed8;
-  --color-accent-700: #1e40af;
-  --color-accent-glow: rgba(37, 99, 235, 0.15);
+  /* Deep jewel teal gives crisp, high-contrast clarity on light surfaces */
+  --color-accent-500: #116466;
+  --color-accent-400: #198284;
+  --color-accent-300: #36a5a7;
+  --color-accent-200: #7ecac6;
+  --color-accent-600: #0d4e50;
+  --color-accent-700: #0a3d3e;
+  --color-accent-glow: rgba(17, 100, 102, 0.20);
 
-  /* Light theme signal error tokens (high-contrast red on light bg) */
+  /* Light theme signal error tokens */
   --color-signal-error: #dc2626;
   --color-signal-error-dim: rgba(220, 38, 38, 0.08);
   --color-error: #dc2626;
@@ -219,61 +226,58 @@ input[type="range"] {
 :root[data-theme="light"] .divide-white\/4 > * + * { border-color: rgba(0, 0, 0, 0.06); }
 :root[data-theme="light"] .divide-white\/6 > * + * { border-color: rgba(0, 0, 0, 0.09); }
 
-/* Selection colour reads better with a darker text colour on light bg. */
+/* Selection colour in light mode */
 :root[data-theme="light"] ::selection {
-  background: rgba(245, 158, 11, 0.25);
-  color: #15151e;
+  background: rgba(17, 100, 102, 0.25);
+  color: #121715;
 }
 
-/* Ambient gradient is too subtle on light bg — boost the amber tint a notch. */
+/* Ambient gradient in light mode */
 :root[data-theme="light"] .ambient-bg {
   background-image:
-    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(245, 158, 11, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 80% at 90% 100%, rgba(96, 165, 250, 0.08) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(17, 100, 102, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 90% 100%, rgba(255, 203, 154, 0.10) 0%, transparent 50%);
 }
 
 /* Noise overlay is calibrated for dark; dial it down in light mode. */
 :root[data-theme="light"] .noise-bg::before {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
-/* Top-nav uses bg-base-950/60 which becomes a translucent light grey — keep
-   it readable by tinting toward white. */
+/* Top-nav uses bg-base-950/60 which becomes a translucent light grey */
 :root[data-theme="light"] nav.bg-base-950\/60 {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(244, 247, 246, 0.85);
 }
 
 /* -------------------------------------------------------------------
    Button + glow refinements for light mode.
-   The amber brand colour stays consistent (think Stripe purple, Linear
-   indigo, Notion red — accent doesn't flip with theme). We only adjust
-   shadow weight and gradient stops so the CTA reads as crisp and
-   intentional on a light surface instead of washed-out.
+   Deep Jewel Teal (#116466) provides high contrast (6.5:1+) on light surfaces.
    ------------------------------------------------------------------- */
 
 :root[data-theme="light"] .btn-primary,
 :root[data-theme="light"] .kinetic-pill {
-  /* Deep professional blue gradient (Stripe / Linear feel). */
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #116466 0%, #0d4e50 100%);
   color: #ffffff;
+  border-color: rgba(17, 100, 102, 0.4);
   box-shadow:
-    0 1px 2px rgba(29, 78, 216, 0.18),
-    0 4px 12px rgba(59, 130, 246, 0.30);
+    0 1px 2px rgba(13, 78, 80, 0.2),
+    0 4px 14px rgba(17, 100, 102, 0.28);
 }
 :root[data-theme="light"] .btn-primary:hover,
 :root[data-theme="light"] .kinetic-pill:hover {
+  background: linear-gradient(135deg, #198284 0%, #116466 100%);
+  color: #ffffff;
   box-shadow:
-    0 2px 4px rgba(29, 78, 216, 0.22),
-    0 8px 24px rgba(59, 130, 246, 0.40);
+    0 2px 4px rgba(13, 78, 80, 0.25),
+    0 8px 24px rgba(25, 130, 132, 0.38);
 }
 
-/* Glow ring: dark mode uses heavy black shadow; light mode wants a
-   softer, tighter lift with a hint of blue so cards feel raised. */
+/* Glow ring in light mode */
 :root[data-theme="light"] .ambient-glow {
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.05),
-    0 0 32px rgba(59, 130, 246, 0.10);
+    0 0 32px rgba(17, 100, 102, 0.12);
 }
 
 /* Glass panels in light mode get a subtle drop shadow for separation. */
@@ -281,35 +285,34 @@ input[type="range"] {
   backdrop-filter: blur(20px) saturate(1.4);
 }
 
-/* Brand mark (logo text + SE chip) also flips to the blue palette so the
-   light theme reads as fully monochrome-cool rather than amber+blue mixed. */
+/* Brand mark and gradient text in light mode */
 :root[data-theme="light"] .text-gradient-amber {
-  background: linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #ffcb9a, #d9b08c, #936743);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 :root[data-theme="light"] .aurora-chip {
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #ffcb9a 0%, #d9b08c 100%);
+  color: #121715;
   box-shadow:
-    0 1px 2px rgba(29, 78, 216, 0.20),
-    0 4px 12px rgba(59, 130, 246, 0.30);
+    0 1px 2px rgba(181, 131, 89, 0.25),
+    0 4px 12px rgba(217, 176, 140, 0.35);
 }
 
-/* User-message chat bubble — also flip to the blue palette. */
+/* User-message chat bubble in light mode */
 :root[data-theme="light"] .aurora-bubble {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #116466 0%, #0d4e50 100%);
   color: #ffffff;
   box-shadow:
-    0 1px 2px rgba(29, 78, 216, 0.18),
-    0 6px 20px rgba(59, 130, 246, 0.22);
+    0 1px 2px rgba(13, 78, 80, 0.2),
+    0 6px 20px rgba(17, 100, 102, 0.25);
 }
 
-/* The amber gradient text utility (used for some headings) too. */
+/* Gradient aurora heading in light mode */
 :root[data-theme="light"] .text-gradient-aurora {
-  background: linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #116466, #198284, #d9b08c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -317,20 +320,15 @@ input[type="range"] {
 
 /* ── Podcast Player — light mode overrides ──────────────────────────────────
    In light mode the player card flips to a clean white/grey surface and
-   the inactive bars become a subtle dark tint. The play button glow
-   picks up the blue accent automatically because --color-accent-* already
-   flips in the light theme block above.
+   the inactive bars become a subtle dark tint.
 ─────────────────────────────────────────────────────────────────────────── */
 :root[data-theme="light"] .podcast-player-card {
   --podcast-card-bg-start: #ffffff;
-  --podcast-card-bg-end:   #f0f0f6;
-  /* Inactive bars: dark tint on light surface */
+  --podcast-card-bg-end:   #f0f4f2;
   --podcast-bar-inactive:  rgba(0, 0, 0, 0.12);
-  /* Play button glow: blue accent */
-  --podcast-play-ring:        rgba(37, 99, 235, 0.20);
-  --podcast-play-glow:        rgba(37, 99, 235, 0.30);
-  --podcast-play-glow-strong: rgba(37, 99, 235, 0.50);
-  /* Lighter shadow for light mode */
+  --podcast-play-ring:        rgba(17, 100, 102, 0.25);
+  --podcast-play-glow:        rgba(17, 100, 102, 0.35);
+  --podcast-play-glow-strong: rgba(17, 100, 102, 0.55);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.06);
@@ -377,8 +375,8 @@ input[type="range"] {
   }
 
   ::selection {
-    background: rgba(251, 191, 36, 0.3);
-    color: #fde68a;
+    background: rgba(17, 100, 102, 0.45);
+    color: #d1e8e2;
   }
 }
 
@@ -410,7 +408,7 @@ input[type="range"] {
     height: 80vh;
     top: -20vh;
     left: -20vw;
-    background: radial-gradient(circle at center, rgba(245, 158, 11, 0.045) 0%, transparent 70%);
+    background: radial-gradient(circle at center, rgba(17, 100, 102, 0.16) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     animation: aurora-float-1 25s ease-in-out infinite alternate;
@@ -422,7 +420,7 @@ input[type="range"] {
     height: 80vh;
     bottom: -20vh;
     right: -20vw;
-    background: radial-gradient(circle at center, rgba(96, 165, 250, 0.035) 0%, transparent 70%);
+    background: radial-gradient(circle at center, rgba(255, 203, 154, 0.08) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
     animation: aurora-float-2 20s ease-in-out infinite alternate;
@@ -440,94 +438,102 @@ input[type="range"] {
     100% { transform: translate(6vw, -4vh) scale(1.1); opacity: 0.8; }
   }
 
-  /* --- Glass panel: refined frosted glass --- */
+  /* --- Glass panel: refined frosted glass (#2C3531 base surface) --- */
   .glass-panel {
     background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.01) 100%
+      rgba(44, 53, 49, 0.45) 0%,
+      rgba(26, 34, 31, 0.55) 100%
     );
     backdrop-filter: blur(24px) saturate(1.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(209, 232, 226, 0.08);
     box-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.4),
       0 12px 40px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      inset 0 1px 0 rgba(209, 232, 226, 0.04);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
   .glass-panel:focus-within {
-    border-color: rgba(245, 158, 11, 0.25);
+    border-color: rgba(209, 232, 226, 0.35);
     box-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.4),
       0 12px 40px rgba(0, 0, 0, 0.3),
-      0 0 15px rgba(245, 158, 11, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      0 0 20px rgba(17, 100, 102, 0.25),
+      inset 0 1px 0 rgba(209, 232, 226, 0.06);
   }
 
   /* --- Glass pill (lighter variant) --- */
   .glass-pill {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(44, 53, 49, 0.35);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(209, 232, 226, 0.12);
   }
 
-  /* --- CTA button: professional indigo gradient --- */
+  /* --- CTA button: Solarin Jewel Teal (#116466) + Luminous Mint (#D1E8E2) --- */
   .btn-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #116466 0%, #0d4e50 100%);
+    color: #d1e8e2;
     font-weight: 600;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(209, 232, 226, 0.30);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(79, 70, 229, 0.28);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(17, 100, 102, 0.45);
   }
   .btn-primary:hover {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(99, 102, 241, 0.38);
+    background: linear-gradient(135deg, #198284 0%, #116466 100%);
+    color: #ffffff;
+    border-color: rgba(209, 232, 226, 0.65);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(25, 130, 132, 0.55), 0 0 16px rgba(209, 232, 226, 0.35);
     transform: translateY(-1px);
   }
   .btn-primary:active {
     transform: translateY(0) scale(0.98);
   }
 
-  /* --- Secondary button --- */
+  /* --- Secondary button: Obsidian Glass (#2C3531) --- */
   .btn-secondary {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--color-base-100);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(44, 53, 49, 0.55);
+    color: #d1e8e2;
+    border: 1px solid rgba(209, 232, 226, 0.16);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
+    background: rgba(17, 100, 102, 0.30);
+    border-color: rgba(255, 203, 154, 0.45);
+    color: #ffcb9a;
+    box-shadow: 0 0 16px rgba(17, 100, 102, 0.28);
   }
 
-  /* --- Bento Card Component --- */
+  /* --- Bento Card Component (#2C3531 Base Surface) --- */
   .card-bento {
     background: var(--color-base-900);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(209, 232, 226, 0.08);
     border-radius: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .card-bento:hover {
-    border-color: rgba(99, 102, 241, 0.25);
+    border-color: rgba(209, 232, 226, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 24px rgba(17, 100, 102, 0.18);
   }
 
   /* --- Kinetic pill --- */
   .kinetic-pill {
-    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #116466 0%, #0d4e50 100%);
+    color: #d1e8e2;
     font-weight: 600;
     cursor: pointer;
+    border: 1px solid rgba(209, 232, 226, 0.30);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 2px 10px rgba(17, 100, 102, 0.35);
   }
   .kinetic-pill:hover {
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, #198284 0%, #116466 100%);
+    color: #ffffff;
+    border-color: rgba(209, 232, 226, 0.60);
+    box-shadow: 0 4px 22px rgba(25, 130, 132, 0.55), 0 0 14px rgba(209, 232, 226, 0.30);
     transform: translateY(-1px);
   }
   .kinetic-pill:active {
@@ -543,9 +549,9 @@ input[type="range"] {
   /* --- Glow ring effect --- */
   .ambient-glow {
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 0 40px rgba(245, 158, 11, 0.05);
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(209, 232, 226, 0.08),
+      0 0 40px rgba(17, 100, 102, 0.20);
   }
 
   /* --- High contrast card (for blog reader) --- */
@@ -629,19 +635,18 @@ input[type="range"] {
   }
 
   /* ── Podcast Player — theme-adaptive CSS vars ─────────────────────────────
-     Dark mode defaults (amber accent).
-     Light mode overrides are below in the :root[data-theme="light"] block.
+     Solarin palette defaults (#116466 jewel teal + #D1E8E2 mint + #FFCB9A peach)
   ─────────────────────────────────────────────────────────────────────────── */
   .podcast-player-card {
     /* Dark: deep obsidian surface */
-    --podcast-card-bg-start: #111114;
-    --podcast-card-bg-end:   #0d0d10;
-    /* Inactive waveform bars: faint white tint on dark bg */
-    --podcast-bar-inactive:  rgba(255, 255, 255, 0.13);
-    /* Play button glow helpers — derived from accent */
-    --podcast-play-ring:        rgba(245, 158, 11, 0.22);
-    --podcast-play-glow:        rgba(245, 158, 11, 0.38);
-    --podcast-play-glow-strong: rgba(245, 158, 11, 0.60);
+    --podcast-card-bg-start: #1a221f;
+    --podcast-card-bg-end:   #121715;
+    /* Inactive waveform bars: faint tint on dark bg */
+    --podcast-bar-inactive:  rgba(209, 232, 226, 0.12);
+    /* Play button glow helpers — derived from Solarin teal */
+    --podcast-play-ring:        rgba(209, 232, 226, 0.30);
+    --podcast-play-glow:        rgba(17, 100, 102, 0.45);
+    --podcast-play-glow-strong: rgba(25, 130, 132, 0.70);
 
     background: linear-gradient(
       160deg,
@@ -650,16 +655,19 @@ input[type="range"] {
     );
   }
 
-  /* Play button: matches accent in both themes */
+  /* Play button: matches Solarin jewel teal */
   .podcast-play-btn {
     background: linear-gradient(
       135deg,
-      var(--color-accent-500) 0%,
-      var(--color-accent-600) 100%
+      #198284 0%,
+      #116466 100%
     );
+    color: #d1e8e2;
+    border: 1px solid rgba(209, 232, 226, 0.35);
   }
   .podcast-play-btn:hover {
     filter: brightness(1.12);
+    border-color: rgba(209, 232, 226, 0.6);
   }
 
   /* --- Prose overrides for blog content --- */
@@ -668,56 +676,67 @@ input[type="range"] {
     letter-spacing: -0.02em;
   }
   .prose a {
-    color: var(--color-accent-500);
-    text-decoration-color: rgba(245, 158, 11, 0.3);
+    color: var(--color-accent-400);
+    text-decoration-color: rgba(25, 130, 132, 0.35);
   }
   .prose a:hover {
-    color: var(--color-accent-400);
-    text-decoration-color: var(--color-accent-400);
+    color: var(--color-accent-200);
+    text-decoration-color: var(--color-accent-200);
   }
 
   /* --- Focus ring --- */
   .focus-ring:focus-visible {
-    outline: 2px solid var(--color-accent-500);
+    outline: 2px solid var(--color-accent-400);
     outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(209, 232, 226, 0.25);
   }
 
-  /* --- Gradient text utility --- */
+  /* --- Warm Peach / Bronze gradient text --- */
   .text-gradient-amber {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    background: linear-gradient(135deg, #ffcb9a, #d9b08c, #b58359);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
+  /* --- Mint to Teal cool gradient text --- */
   .text-gradient-cool {
-    background: linear-gradient(135deg, #60a5fa, #818cf8);
+    background: linear-gradient(135deg, #d1e8e2, #36a5a7, #116466);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* --- Backward-compat aliases: map "aurora" classes to the amber palette
-     so the refactored components keep rendering correctly under the
-     original warm-amber theme. --- */
-  .aurora-chip {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
-    color: #0a0a0c;
-    box-shadow:
-      0 2px 12px rgba(245, 158, 11, 0.30),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  /* --- Solarin Signature Gradient (Mint -> Peach -> Bronze) --- */
+  .text-gradient-solarin {
+    background: linear-gradient(135deg, #d1e8e2 0%, #ffcb9a 50%, #d9b08c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
+  /* --- Solarin Peach/Bronze Chip / Warm Button --- */
+  .aurora-chip, .btn-warm {
+    background: linear-gradient(135deg, #ffcb9a 0%, #d9b08c 100%);
+    color: #2c3531;
+    font-weight: 600;
+    box-shadow:
+      0 2px 12px rgba(217, 176, 140, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  /* --- Solarin Jewel Teal Chat Bubble --- */
   .aurora-bubble {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: #0a0a0c;
+    background: linear-gradient(135deg, #116466 0%, #0d4e50 100%);
+    color: #d1e8e2;
     box-shadow:
-      0 6px 24px rgba(245, 158, 11, 0.18),
-      0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      0 6px 24px rgba(17, 100, 102, 0.28),
+      0 0 0 1px rgba(209, 232, 226, 0.12) inset;
   }
 
+  /* --- Aurora Header Text Gradient (Mint -> Jewel Teal -> Peach) --- */
   .text-gradient-aurora {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    background: linear-gradient(135deg, #d1e8e2 0%, #198284 50%, #ffcb9a 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -784,14 +803,14 @@ input[type="range"] {
     border-top-color: var(--color-accent-500);
     border-right-color: var(--color-accent-500);
     animation: orbitalSpin 1.6s linear infinite;
-    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+    filter: drop-shadow(0 0 6px rgba(17, 100, 102, 0.55));
   }
   .orbital-ring-2 {
     inset: 6px;
     border-bottom-color: var(--color-accent-300);
     border-left-color: var(--color-accent-300);
     animation: orbitalSpin 2.4s linear infinite reverse;
-    filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.3));
+    filter: drop-shadow(0 0 4px rgba(255, 203, 154, 0.45));
   }
   .orbital-ring-3 {
     inset: 12px;
@@ -870,13 +889,13 @@ input[type="range"] {
   .step-node-active {
     background: var(--color-accent-600);
     color: #ffffff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(17, 100, 102, 0.35);
     animation: stepPulse 2s ease-in-out infinite;
   }
   .step-node-pending {
     background: var(--color-base-800);
     color: var(--color-base-500);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(209, 232, 226, 0.1);
   }
   .step-node-error {
     background: var(--color-signal-error);
@@ -884,8 +903,8 @@ input[type="range"] {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(244, 63, 94, 0.25);
   }
   @keyframes stepPulse {
-    0%, 100% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(99, 102, 241, 0.2); }
-    50% { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2), 0 0 0 6px rgba(99, 102, 241, 0.35); }
+    0%, 100% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(17, 100, 102, 0.25); }
+    50% { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2), 0 0 0 6px rgba(25, 130, 132, 0.45); }
   }
   .step-connector {
     flex: 1;
