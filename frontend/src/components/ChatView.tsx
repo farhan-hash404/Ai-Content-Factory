@@ -217,7 +217,7 @@ export function ChatView({
           <div>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-base-50">
               {!currentJob
-                ? 'Content Studio'
+                ? 'AI Content Factory'
                 : currentJob.status === 'completed'
                   ? 'Generation Complete'
                   : currentJob.status === 'failed'

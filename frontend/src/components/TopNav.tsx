@@ -13,7 +13,7 @@ export function TopNav({ view, onToggleMobileSidebar, openSettings, selectedMode
   const { theme, toggleTheme } = useTheme();
 
   const viewLabels: Record<ViewState, { title: string; category: string }> = {
-    chat: { title: 'Content Studio', category: 'Creation Hub' },
+    chat: { title: 'AI Content Factory', category: 'Creation Hub' },
     graph: { title: 'Agent Graph', category: 'LangGraph Topology' },
     content: { title: 'Studio & Assets', category: 'Output Center' },
   };

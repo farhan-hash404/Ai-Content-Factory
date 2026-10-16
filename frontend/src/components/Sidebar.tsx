@@ -28,7 +28,7 @@ export function Sidebar({
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'active'>('all');
 
   const navItems: { key: ViewState; icon: React.ReactNode; label: string; badge?: string }[] = [
-    { key: 'chat',    icon: <LayoutDashboard className="w-4 h-4" />, label: 'Content Studio' },
+    { key: 'chat',    icon: <LayoutDashboard className="w-4 h-4" />, label: 'AI Content Factory' },
     { key: 'graph',   icon: <Activity        className="w-4 h-4" />, label: 'Agent Graph', badge: '14 Agents' },
     { key: 'content', icon: <FileEdit       className="w-4 h-4" />, label: 'Asset Studio' },
   ];
