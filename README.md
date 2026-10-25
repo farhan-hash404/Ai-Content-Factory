@@ -17,7 +17,10 @@ A stateful, multi-agent AI system for automated research, content synthesis, mul
 
 
 
-https://github.com/user-attachments/assets/93adc7a6-81b1-4300-899f-e94a01c5f37d
+
+
+https://github.com/user-attachments/assets/d99c7f9f-aec4-4730-bef4-9e1408f63ac2
+
 
 
 
