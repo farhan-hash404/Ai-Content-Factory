@@ -16,7 +16,7 @@ export default function App() {
   const [jobs, setJobs]               = useState<Job[]>([]);
   const [currentJob, setCurrentJob]   = useState<Job | null>(null);
   const [events, setEvents]           = useState<AgentEvent[]>([]);
-  const [topicError, setTopicError]   = useState<{ reason: string; category?: string; suggested_topic?: string } | null>(null);
+  const [topicError, setTopicError]   = useState<{ title?: string; reason: string; category?: string; suggested_topic?: string } | null>(null);
   const wsClientRef                   = useRef<WebSocketClient>(new WebSocketClient());
 
   // Lifted configurations
@@ -174,13 +174,32 @@ export default function App() {
     } catch (e: any) {
       if (e?.code === 'topic_rejected') {
         setTopicError({
+          title: 'Topic validation rejected:',
           reason: e.reason || 'Topic was rejected.',
           category: e.category,
           suggested_topic: e.suggested_topic || '',
         });
       } else {
         console.error('Failed to create job:', e);
-        setTopicError({ reason: 'Could not start the job. Please try again.' });
+        const rawMsg = e?.message || '';
+        const isNetworkError =
+          rawMsg.includes('Failed to fetch') ||
+          rawMsg.includes('NetworkError') ||
+          rawMsg.includes('Load failed');
+
+        let displayReason = rawMsg;
+        if (isNetworkError) {
+          displayReason =
+            'Backend server is unreachable. On Vercel, the site hosts the static frontend only. To run generations, connect a hosted backend via VITE_API_BASE_URL or run the backend locally.';
+        } else if (!displayReason || displayReason === 'Failed to create job') {
+          displayReason = 'Could not start the job. Please check server logs and try again.';
+        }
+
+        setTopicError({
+          title: 'Generation failed to start:',
+          reason: displayReason,
+        });
+        toast.fromError(e, displayReason);
       }
     }
   };

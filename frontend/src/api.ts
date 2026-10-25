@@ -1,5 +1,6 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${window.location.hostname}:8000`;
-const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || `ws://${window.location.hostname}:8000`;
+const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' ? `${isHttps ? 'https' : 'http'}://${window.location.hostname}:8000` : 'http://localhost:8000');
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || (typeof window !== 'undefined' ? `${isHttps ? 'wss' : 'ws'}://${window.location.hostname}:8000` : 'ws://localhost:8000');
 
 // Optional shared secret. Only needed when the backend has API_KEY set in .env
 // (see Agents_backend/api/auth.py); empty by default so local dev is unchanged.
