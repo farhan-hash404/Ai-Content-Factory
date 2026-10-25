@@ -13,9 +13,20 @@ A stateful, multi-agent AI system for automated research, content synthesis, mul
 
 ## 📹 Demo Video
 
-https://github.com/farhan-hash404/Ai-Content-Factory/raw/master/docs/demo.mp4
 
-<sub>If the player above doesn't load, [**download / watch the demo (MP4)**](docs/demo.mp4).</sub>
+
+
+
+https://github.com/user-attachments/assets/93adc7a6-81b1-4300-899f-e94a01c5f37d
+
+
+
+
+
+
+
+
+
 
 ---
 
