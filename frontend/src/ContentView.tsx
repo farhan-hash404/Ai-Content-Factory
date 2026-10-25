@@ -113,7 +113,7 @@ export function ContentView({ navTo, currentJob, refreshJob, events = [], reconn
       {/* Header and Tabs */}
       <div className="mb-8 fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <h2 className="text-2xl font-bold text-base-50 tracking-tight line-clamp-1">Studio: {currentJob.topic}</h2>
+          <h2 className="font-display text-3xl text-base-50 tracking-tight line-clamp-1">{currentJob.topic}</h2>
           <div className="flex items-center gap-2.5 shrink-0">
             <span className="px-2.5 py-1 rounded-lg bg-accent-glow text-accent-400 text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 border border-accent-500/20">
               {currentJob?.status === 'completed' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}

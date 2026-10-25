@@ -77,7 +77,7 @@ interface ChatViewProps {
   navTo: (v: ViewState) => void;
   currentJob: Job | null;
   events: AgentEvent[];
-  topicError?: { reason: string; category?: string; suggested_topic?: string } | null;
+  topicError?: { title?: string; reason: string; category?: string; suggested_topic?: string } | null;
   clearTopicError?: () => void;
   handleCreateJob:    (params: CreateJobParams) => void;
   handleApprovePlan:  (jobId: string) => void;
@@ -231,26 +231,38 @@ export function ChatView({
         
         {/* Top Header / Context */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-base-50">
-              {!currentJob
-                ? 'AI Content Factory'
-                : currentJob.status === 'completed'
+          {showHero ? (
+            <div className="w-full text-center py-4 md:py-8">
+              <h1 className="font-display text-4xl md:text-6xl text-base-50">
+                What should the agents <em className="text-accent-400">write</em> today?
+              </h1>
+              <p className="text-sm md:text-base text-base-300 mt-3">
+                Research, outline, draft and audit — from a single topic.
+              </p>
+              <p className="text-[11px] font-mono text-base-500 mt-2 uppercase tracking-wider">
+                Model · {selectedModel}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <h2 className="font-display text-3xl md:text-4xl tracking-tight text-base-50">
+                {currentJob?.status === 'completed'
                   ? 'Generation Complete'
-                  : currentJob.status === 'failed'
+                  : currentJob?.status === 'failed'
                     ? 'Pipeline Paused'
-                    : currentJob.status === 'awaiting_approval'
-                      ? 'Review Outline Plan'
+                    : currentJob?.status === 'awaiting_approval'
+                      ? 'Review the outline'
                       : 'Running Multi-Agent Graph…'}
-            </h2>
-            <p className="text-xs md:text-sm text-base-400 mt-1 flex items-center gap-2">
-              <span className="font-mono text-base-500">LangGraph Core</span>
-              <span>•</span>
-              <span>14 Specialized Nodes</span>
-              <span>•</span>
-              <span className="text-accent-400 font-medium">HITL Enabled</span>
-            </p>
-          </div>
+              </h2>
+              <p className="text-xs md:text-sm text-base-400 mt-1 flex items-center gap-2">
+                <span className="font-mono text-base-500">LangGraph Core</span>
+                <span>•</span>
+                <span>14 Specialized Nodes</span>
+                <span>•</span>
+                <span className="text-accent-400 font-medium">HITL Enabled</span>
+              </p>
+            </div>
+          )}
 
           {currentJob && (
             <div className="flex items-center gap-2.5">
@@ -295,7 +307,7 @@ export function ChatView({
                 <span className="text-[11px] font-bold uppercase tracking-wider text-accent-400 px-2.5 py-1 rounded-full bg-accent-500/10 border border-accent-500/20 inline-block mb-3">
                   Production-Grade Agent Pipeline
                 </span>
-                <h3 className="text-xl md:text-2xl font-bold text-base-50 tracking-tight leading-snug mb-2">
+                <h3 className="font-display text-2xl md:text-3xl text-base-50 leading-snug mb-2">
                   Autonomous Research, Synthesis & Evaluation
                 </h3>
                 <p className="text-xs md:text-sm text-base-400 leading-relaxed">
@@ -560,7 +572,7 @@ export function ChatView({
             <div className="mb-3 p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-start gap-2.5">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
               <div className="flex-1">
-                <span className="font-bold">Topic validation rejected:</span> {topicError.reason}
+                <span className="font-bold">{topicError.title || 'Topic validation rejected:'}</span> {topicError.reason}
                 {topicError.suggested_topic && (
                   <button
                     onClick={() => {

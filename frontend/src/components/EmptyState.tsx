@@ -20,7 +20,7 @@ export function EmptyState({
       <div className="w-16 h-16 bg-accent-500/10 rounded-2xl flex items-center justify-center mb-5 border border-accent-500/20 text-accent-400 shadow-sm">
         {icon}
       </div>
-      <h3 className="text-xl font-bold text-base-50 mb-2">{title}</h3>
+      <h3 className="font-display text-2xl text-base-50 mb-2">{title}</h3>
       <p className="text-base-400 mb-6 max-w-md text-xs md:text-sm leading-relaxed">{description}</p>
 
       {error && (

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   LayoutDashboard, FileEdit, Plus, RefreshCw, Trash2, RotateCcw,
-  Activity, Search, Clock, CheckCircle2, AlertCircle, ArrowUpRight
+  Activity, Search, Clock, CheckCircle2, AlertCircle, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Job } from '../api';
@@ -57,12 +57,12 @@ export function Sidebar({
         
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/6">
-          <div className="w-8 h-8 rounded-lg bg-accent-600 flex items-center justify-center text-white shadow-sm shrink-0 font-bold text-sm">
-            CF
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-base-950 shadow-md shrink-0">
+            <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-base-100 tracking-tight leading-none truncate">
-              Content Factory
+            <h1 className="font-display text-lg text-base-50 leading-none truncate">
+              AI Content Factory
             </h1>
             <p className="text-[10px] text-base-400 font-medium tracking-wide mt-1">Multi-Agent Engine</p>
           </div>
