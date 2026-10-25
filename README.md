@@ -11,6 +11,14 @@
 
 A stateful, multi-agent AI system for automated research, content synthesis, multi-modal asset generation, and academic-grade evaluation. Built on **LangGraph**, **FastAPI**, and **React**, this project serves as a **Final Year Project (FYP)** demonstrating agent coordination, parallel processing, Human-in-the-Loop (HITL) workflows, Advanced RAG, and automated LLM-as-judge quality assessment.
 
+## 📹 Demo Video
+
+https://github.com/farhan-hash404/Ai-Content-Factory/raw/master/docs/demo.mp4
+
+<sub>If the player above doesn't load, [**download / watch the demo (MP4)**](docs/demo.mp4).</sub>
+
+---
+
 > **🎬 Live demo (recorded).** `<LIVE_URL will go here>` — a **static replay of one
 > real generation run** (article, podcast, 9:16 video, AI images, G-Eval +
 > DeepEval scorecards). It needs no server, so it never sleeps and costs nothing.
